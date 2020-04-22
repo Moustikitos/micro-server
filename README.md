@@ -6,7 +6,7 @@ Micro IO package (`uio`) is a pure python light JSON server implementation runni
 
 ## `uio.srv`
 
-Run a very lightweiht footprintpython server or [PEP#0333 WSGI server](https://www.python.org/dev/peps/pep-0333/). Bind your python code to any HTTP requests using decorated functions.
+Run a very lightweiht footprint python server or [PEP#0333 WSGI server](https://www.python.org/dev/peps/pep-0333/). Bind your python code to any HTTP requests using decorated functions.
 
 ## `uio.req`
 
