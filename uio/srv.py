@@ -41,8 +41,10 @@ import json
 import inspect
 import logging
 import traceback
+import importlib
 
 from collections import OrderedDict
+from optparse import OptionParser
 
 if sys.version_info[0] >= 3:
     from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -77,7 +79,7 @@ else:
 
     json.JSONDecodeError = ValueError
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger("uio.srv")
 logging.basicConfig()
 
 
@@ -99,8 +101,8 @@ def bind(path, methods=["GET"]):
     Link a python function to an http request. This definition is meant to be
     used as a decorator. It allows server context execution aquirement via
     varargs or keyword args of the decorated function. Positional arguments
-    are extracted from url query string, value is either None (no match in
-    query string) or str type.
+    are extracted from url query string, value is either `None` (no match in
+    query string) or `str` type.
 
     to register an endpoint :
     >>> @bind("/endpoint/path")
@@ -162,13 +164,12 @@ def bind(path, methods=["GET"]):
             }
         )
         for method in methods:
-            print("%s registered to %s endpoint for %s call" % (function.__name__, path, method))
             MicroJsonApp.ENDPOINTS[method] = dict(
                 MicroJsonApp.ENDPOINTS.get(method, {}), **{path: container}
             )
-            LOGGER.info(
-                "%s registered to %s endpoint for %s call",
-                function, path, method
+            LOGGER.debug(
+                "%s registered to %s endpoint for %s request",
+                function.__name__, path, method
             )
         return wrapper
     return decorator
@@ -223,7 +224,7 @@ def _call(func, method, url, header, data):
 
 
 class MicroJsonApp:
-    
+
     ENDPOINTS = {}
 
     def __init__(self, host="127.0.0.1", port=5000, loglevel=20):
@@ -242,9 +243,7 @@ class MicroJsonApp:
             environ.get("PATH_INFO", "/"), None
         )
 
-        if method in [
-            "GET", "DELETE", "HEAD", "OPTIONS", "TRACE"
-        ]:
+        if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
             http_input = "{}"
         else:
             http_input = environ["wsgi.input"].read()
@@ -355,10 +354,7 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
         )
 
 
-if __name__ == "__main__":
-    import importlib
-    from optparse import OptionParser
-
+def main():
     parser = OptionParser(
         usage="usage: %prog [options] BINDINGS...",
         version="%prog 1.0"
@@ -381,6 +377,8 @@ if __name__ == "__main__":
     )
     (options, args) = parser.parse_args()
 
+    app = MicroJsonApp(options.host, options.port, loglevel=options.loglevel)
+
     # if no bindings, register few endpoints for testing purpose
     if len(args) == 0:
         # url, headers, data and method loosed
@@ -399,15 +397,12 @@ if __name__ == "__main__":
         @bind("/vargs_kwargs")
         def test3(a, b, *args, **kwargs):
             return (a, b) + args, kwargs
-
     else:
         for name in args:
             try:
-                import sys
                 importlib.import_module(name)
             except ImportError as error:
-                LOGGER.error("%r\n%s" % (error, traceback.format_exc()))
-
+                LOGGER.error("%r\n%s", error, traceback.format_exc())
         # namespace fix :
         # __main__.MicroJsonApp.ENDPOINTS has to be updated
         uio_srv = sys.modules.get("uio.srv", None)
@@ -416,6 +411,8 @@ if __name__ == "__main__":
                 uio_srv.MicroJsonApp.ENDPOINTS
             )
 
-    MicroJsonApp(options.host, options.port, loglevel=options.loglevel).run(
-        ssl=options.ssl
-    )
+    app.run(ssl=options.ssl)
+
+
+if __name__ == "__main__":
+    main()
