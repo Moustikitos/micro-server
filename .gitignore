@@ -128,3 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 uio/cert.pem
+uio/key.pem
