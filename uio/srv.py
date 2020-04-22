@@ -168,8 +168,8 @@ def bind(path, methods=["GET"]):
                 MicroJsonApp.ENDPOINTS.get(method, {}), **{path: container}
             )
             LOGGER.debug(
-                "%s registered to %s endpoint for %s request",
-                function.__name__, path, method
+                ">>> %s bound to 'HTTP %s %s' request",
+                function.__name__, method, path
             )
         return wrapper
     return decorator
@@ -380,7 +380,7 @@ def main():
     app = MicroJsonApp(options.host, options.port, loglevel=options.loglevel)
 
     # if no bindings, register few endpoints for testing purpose
-    if len(args) == 0:
+    if len(args) == 0 and __name__ == "__main__":
         # url, headers, data and method loosed
         @bind("/")
         def test0(a, b):
@@ -403,13 +403,14 @@ def main():
                 importlib.import_module(name)
             except ImportError as error:
                 LOGGER.error("%r\n%s", error, traceback.format_exc())
-        # namespace fix :
-        # __main__.MicroJsonApp.ENDPOINTS has to be updated
-        uio_srv = sys.modules.get("uio.srv", None)
-        if uio_srv is not None:
-            MicroJsonApp.ENDPOINTS.update(
-                uio_srv.MicroJsonApp.ENDPOINTS
-            )
+
+    # namespace fix :
+    # __main__.MicroJsonApp.ENDPOINTS has to be updated
+    uio_srv = sys.modules.get("uio.srv", None)
+    if uio_srv is not None:
+        MicroJsonApp.ENDPOINTS.update(
+            uio_srv.MicroJsonApp.ENDPOINTS
+        )
 
     app.run(ssl=options.ssl)
 
