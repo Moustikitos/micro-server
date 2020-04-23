@@ -110,7 +110,7 @@ def do_test(a, b, **kwargs):
 
 ```python
 @srv.bind("/test")
-def do_test(a, b, , *args, **kwargs):
+def do_test(a, b, *args, **kwargs):
     # write some code and return something
     # kwargs is a dict
     return a, b, args, kwargs
