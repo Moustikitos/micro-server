@@ -39,7 +39,7 @@ Now going to `127.0.0.1:5000/test` with any browser gives:
 {"status": 200, "result": [null, null]}
 ```
 
-`[null, null]` are the returned values `a` and `b` from `do_test` function. Where did they come from ? Url query string. Let's type `127.0.0.1:5000/test?b=12&a=Paris` in the address bar:
+`[null, null]` are the returned values `a` and `b` from `do_test` function. Parameter values are extracted from query string. Let's type `127.0.0.1:5000/test?b=12&a=Paris` in the address bar:
 
 ```
 {"status": 200, "result": ["Paris", "12"]}

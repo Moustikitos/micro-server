@@ -22,11 +22,6 @@ Options:
 ```
 
 BINDINGS is a list of python modules containing python binded functions.
->>> from uio import srv
->>> @srv.bind("/endpoint/path")
->>> def do_something(a, b, *args, **kwargs):
->>>    # do some coding...
->>>    return (a, b)+args, kwargs
 
   * to run server behind a WSGI, point to a `MicroJsonApp` instance:
 ```bash
@@ -120,7 +115,7 @@ def bind(path, methods=["GET"]):
         path (:class:`str`): endpoint path
         methods (:class:`list`): list of http request to bind with
     Returns:
-        :mod:`decorator`: decorated function
+        :func:`decorator`: decorated function
     """
 
     def decorator(function):
@@ -320,7 +315,9 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def do_(self, method="GET"):
-        func = MicroJsonApp.ENDPOINTS.get(method, {}).get(self.path.split("?")[0], None)
+        func = MicroJsonApp.ENDPOINTS.get(method, {}).get(
+            self.path.split("?")[0], None
+        )
         address, port = self.server.server_address
 
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
