@@ -30,6 +30,7 @@ $ gunicorn 'srv:MicroJsonApp()' --bind=0.0.0.0:5000
 """
 
 import os
+import re
 import sys
 import ssl
 import json
@@ -78,6 +79,41 @@ LOGGER = logging.getLogger("uio.srv")
 logging.basicConfig()
 
 
+class MatchDict(dict):
+
+    PATTERN = re.compile("<([^><]*)>")
+
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+        self._matchers = {}
+
+    def __setitem__(self, item, value):
+        if isinstance(item, str):
+            found = MatchDict.PATTERN.findall(item)
+            if len(found):
+                regexp = re.compile(
+                    "^%s$" % MatchDict.PATTERN.sub("([^/]*)", item)
+                )
+                vars_ = OrderedDict(
+                    [tn[-1], "str" if len(tn) <2 else tn[0]] for tn in [
+                        elem.split(":") for elem in found
+                    ]
+                )
+                setattr(value, "urlmatch", (vars_, regexp))
+                self._matchers[item] = (vars_, regexp)
+        return dict.__setitem__(self, item, value)
+
+    def get(self, item, default=None):
+        value = dict.get(self, item, self._matchers.get(item, default))
+        if value is not None:
+            return value
+        elif isinstance(item, str):
+            for path, (pattern, regexp) in self._matchers.items():
+                if regexp.match(item) is not None:
+                    return dict.get(self, path, default)
+        return default
+
+
 class Capsule:
     """
     Function container.
@@ -88,134 +124,8 @@ class Capsule:
         self.__dict__.update(params)
 
     def __call__(self, *args, **kwargs):
+        setattr(self.func, "urlmatch", getattr(self, "urlmatch", {}))
         return self.func(*args, **kwargs)
-
-
-def bind(path, methods=["GET"]):
-    """
-    Link a python function to an http request. This definition is meant to be
-    used as a decorator. It allows server context execution aquirement via
-    varargs or keyword args of the decorated function. Positional arguments
-    are extracted from url query string, value is either `None` (no match in
-    query string) or `str` type.
-
-    to register an endpoint :
-    >>> @bind("/endpoint/path")
-    >>> def do_something(a, b):
-    >>>    # do some coding
-    >>>    return a, b
-
-    or
-    >>> def do_something_else(a, b, *args):
-    >>>    # do some coding
-    >>>    return (a, b) + args
-    >>> bind("/endpoint/path", methods=["POST"])(do_something_else)
-
-    Args:
-        path (:class:`str`): endpoint path
-        methods (:class:`list`): list of http request to bind with
-    Returns:
-        :func:`decorator`: decorated function
-    """
-
-    def decorator(function):
-        args, uses_vargs, uses_kwargs = inspectBinded(function)
-
-        # create the wrapper called by _call
-        def wrapper(method, url, headers, data):
-            # get parameters from url query string
-            parse_qsl = urlparse.parse_qsl(urlparse.urlparse(url).query)
-            not_positional = dict(
-                (k, v) for k, v in parse_qsl if k not in args
-            )
-            positional = tuple(
-                OrderedDict(
-                    [(k, None) for k in args],
-                    **OrderedDict((k, v) for k, v in parse_qsl if k in args)
-                ).values()
-            )
-            kwargs = {}
-            if uses_kwargs:
-                kwargs.update(
-                    not_positional,
-                    **{
-                        "url": url, "headers": headers,
-                        "data": data, "method": method
-                    }
-                )
-            elif uses_vargs:
-                positional += \
-                    (method, url, headers, data) + \
-                    tuple(not_positional.values())
-            return function(*positional, **kwargs)
-        # register wrapper in a container used to keep informations computed
-        # during registration
-        container = Capsule(
-            wrapper, wrapped=function.__name__,
-            path=path, methods=methods,
-            inspect={
-                "args": args, "uses_vargs": uses_vargs,
-                "uses_kwargs": uses_kwargs
-            }
-        )
-        for method in methods:
-            MicroJsonApp.ENDPOINTS[method] = dict(
-                MicroJsonApp.ENDPOINTS.get(method, {}), **{path: container}
-            )
-            LOGGER.debug(
-                ">>> %s bound to 'HTTP %s %s' request",
-                function.__name__, method, path
-            )
-        return wrapper
-    return decorator
-
-
-def _rebuild_url(env):
-    """
-    Rebuild full url from WSGI environement according to PEP #3333.
-    https://www.python.org/dev/peps/pep-3333
-    """
-    url = env['wsgi.url_scheme'] + '://'
-
-    if env.get('HTTP_HOST'):
-        url += env['HTTP_HOST']
-    else:
-        url += env['SERVER_NAME']
-
-        if env['wsgi.url_scheme'] == 'https':
-            if env['SERVER_PORT'] != '443':
-                url += ':' + env['SERVER_PORT']
-        else:
-            if env['SERVER_PORT'] != '80':
-                url += ':' + env['SERVER_PORT']
-
-    url += quote(env.get('SCRIPT_NAME', ''))
-    url += quote(env.get('PATH_INFO', ''))
-
-    if env.get('QUERY_STRING'):
-        url += '?' + env['QUERY_STRING']
-
-    return url
-
-
-def _call(func, method, url, header, data):
-    if func is None:
-        LOGGER.error("no endpoind found behind %s", url)
-        return {"status": 400, "result": "not found"}
-    else:
-        try:
-            result = func(method, url, header, json.loads(data))
-        except json.JSONDecodeError as error:
-            LOGGER.error("%r\n%s", error, traceback.format_exc())
-            status = 406
-            result = "data is not a valid json string"
-        except Exception as error:
-            LOGGER.error("%r\n%s", error, traceback.format_exc())
-            status = 500
-            result = "%s raise an error: %r" % (func, error)
-        else:
-            status = 200
-    return {"status": status, "result": result}
 
 
 class MicroJsonApp:
@@ -349,6 +259,147 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
         self.wfile.write(
             data if isinstance(data, bytes) else data.encode("latin-1")
         )
+
+
+def _rebuild_url(env):
+    """
+    Rebuild full url from WSGI environement according to PEP #3333.
+    https://www.python.org/dev/peps/pep-3333
+    """
+    url = env['wsgi.url_scheme'] + '://'
+
+    if env.get('HTTP_HOST'):
+        url += env['HTTP_HOST']
+    else:
+        url += env['SERVER_NAME']
+
+        if env['wsgi.url_scheme'] == 'https':
+            if env['SERVER_PORT'] != '443':
+                url += ':' + env['SERVER_PORT']
+        else:
+            if env['SERVER_PORT'] != '80':
+                url += ':' + env['SERVER_PORT']
+
+    url += quote(env.get('SCRIPT_NAME', ''))
+    url += quote(env.get('PATH_INFO', ''))
+
+    if env.get('QUERY_STRING'):
+        url += '?' + env['QUERY_STRING']
+
+    return url
+
+
+def _call(func, method, url, header, data):
+    if func is None:
+        LOGGER.error("no endpoind found behind %s", url)
+        return {"status": 400, "result": "not found"}
+    else:
+        try:
+            result = func(method, url, header, json.loads(data))
+        except json.JSONDecodeError as error:
+            LOGGER.error("%r\n%s", error, traceback.format_exc())
+            status = 406
+            result = "data is not a valid json string"
+        except Exception as error:
+            LOGGER.error("%r\n%s", error, traceback.format_exc())
+            status = 500
+            result = "%s raise an error: %r" % (func, error)
+        else:
+            status = 200
+    return {"status": status, "result": result}
+
+
+def bind(path, methods=["GET"]):
+    """
+    Link a python function to an http request. This definition is meant to be
+    used as a decorator. It allows server context execution aquirement via
+    varargs or keyword args of the decorated function. Positional arguments
+    are extracted from url query string, value is either `None` (no match in
+    query string) or `str` type.
+
+    to register an endpoint :
+    >>> @bind("/endpoint/path")
+    >>> def do_something(a, b):
+    >>>    # do some coding
+    >>>    return a, b
+
+    or
+    >>> def do_something_else(a, b, *args):
+    >>>    # do some coding
+    >>>    return (a, b) + args
+    >>> bind("/endpoint/path", methods=["POST"])(do_something_else)
+
+    Args:
+        path (:class:`str`):
+            endpoint path
+        methods (:class:`list`):
+            list of http request to bind with [default: ['GET']]
+    Returns:
+        :func:`decorator`: decorated function
+    """
+
+    def decorator(function):
+        args, uses_vargs, uses_kwargs = inspectBinded(function)
+
+        # create the wrapper called by _call
+        def wrapper(method, url, headers, data):
+            # get parameters from url query string
+            parse = urlparse.urlparse(url)
+            parse_qsl = urlparse.parse_qsl(parse.query)
+            # gather variables from url path
+            _urlmatch = {}
+            if hasattr(wrapper, "urlmatch"):
+                vars_, regexp = getattr(wrapper, "urlmatch", [None, None])
+                for (name, typ_), value in zip(
+                    vars_.items(), regexp.match(parse.path).groups()
+                ):
+                    _urlmatch[name] = __builtins__[typ_](value)
+            # create positional argument tuple using OrderedDict
+            positional = tuple(
+                OrderedDict(
+                    [(k, _urlmatch.pop(k, None)) for k in args],
+                    **OrderedDict((k, v) for k, v in parse_qsl if k in args)
+                ).values()
+            )
+            # create dict of non positional argument for varargs tuple
+            not_positional = dict(
+                [(k, v) for k, v in parse_qsl if k not in args],
+                **_urlmatch
+            )
+            # create dict for keywordargs dict
+            kwargs = {} if uses_vargs else not_positional
+            if uses_kwargs:
+                kwargs.update({
+                        "url": url, "headers": headers,
+                        "data": data, "method": method
+                    }
+                )
+            if uses_vargs:
+                positional += \
+                    (method, url, headers, data) if not uses_kwargs else () + \
+                    tuple(not_positional.values())
+            return function(*positional, **kwargs)
+
+        # register wrapper in a container used to keep informations computed
+        # during registration
+        container = Capsule(
+            wrapper, wrapped=function.__name__, path=path, methods=methods,
+            inspect={
+                "args": args, "uses_vargs": uses_vargs,
+                "uses_kwargs": uses_kwargs
+            }
+        )
+        # register wrapper in MicroJsonApp.ENDPOINTS
+        for method in methods:
+            if method not in MicroJsonApp.ENDPOINTS:
+                MicroJsonApp.ENDPOINTS[method] = MatchDict()
+            MicroJsonApp.ENDPOINTS[method][path] = container
+            LOGGER.debug(
+                "%s bound to 'HTTP %s %s' request",
+                function.__name__, method, path
+            )
+        return wrapper
+    return decorator
 
 
 def main():
