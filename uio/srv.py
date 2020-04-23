@@ -80,7 +80,7 @@ class MatchDict(dict):
                     "^%s$" % MatchDict.PATTERN.sub("([^/]*)", item)
                 )
                 vars_ = OrderedDict(
-                    [tn[-1], "str" if len(tn) <2 else tn[0]] for tn in [
+                    [tn[-1], "str" if len(tn) < 2 else tn[0]] for tn in [
                         elem.split(":") for elem in found
                     ]
                 )
@@ -89,7 +89,11 @@ class MatchDict(dict):
         return dict.__setitem__(self, item, value)
 
     def get(self, item, default=None):
-        value = dict.get(self, item, self._matchers.get(item, default))
+        value = dict.get(
+            self, item, self._matchers.get(
+                item, default
+            )
+        )
         if value is not None:
             return value
         elif isinstance(item, str):
@@ -109,7 +113,11 @@ class Capsule:
         self.__dict__.update(params)
 
     def __call__(self, *args, **kwargs):
-        setattr(self.func, "urlmatch", getattr(self, "urlmatch", [None, None]))
+        setattr(
+            self.func, "urlmatch", getattr(
+                self, "urlmatch", [None, None]
+            )
+        )
         return self.func(*args, **kwargs)
 
 
@@ -322,6 +330,10 @@ def bind(path, methods=["GET"]):
     Returns:
         :func:`decorator`: decorated function
     """
+    if not path.startswith("/"):
+        path = "/" + path
+    if path.endswith("/"):
+        path = path[:-1]
 
     def decorator(function):
         insp = inspect.getargspec(function)
@@ -335,10 +347,14 @@ def bind(path, methods=["GET"]):
             _urlmatch = {}
             vars_, regexp = getattr(wrapper, "urlmatch", [None, None])
             if vars_ is not regexp:
-                for (name, typ_), value in zip(
-                    vars_.items(), regexp.match(parse.path).groups()
-                ):
-                    _urlmatch[name] = __builtins__[typ_](value)
+                try:
+                    for (name, typ_), value in zip(
+                        vars_.items(), regexp.match(parse.path).groups()
+                    ):
+                        _urlmatch[name] = __builtins__[typ_](value)
+                except Exception as error:
+                    LOGGER.error("%r\n%s", error, traceback.format_exc())
+                    raise Exception("Error during extraction from url path")
             # create OrderedDict of positional argument
             positional = OrderedDict([(k, None) for k in insp.args])
             if insp.defaults is not None:
@@ -359,6 +375,8 @@ def bind(path, methods=["GET"]):
                 **_urlmatch
             )
 
+            LOGGER.debug(">> %r %r", positional, not_positional)
+
             args = tuple(positional.values())
             kwargs = {} if insp.varargs is not None else not_positional
             if insp.keywords is not None:
@@ -370,6 +388,7 @@ def bind(path, methods=["GET"]):
                     (method, url, headers, data)
                     if insp.keywords is None else ()
                  ) + tuple(not_positional.values())
+
             return function(*args, **kwargs)
 
         # register wrapper in a container used to keep informations computed

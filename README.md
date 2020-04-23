@@ -1,14 +1,12 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-io/master/LICENSE)
 
-# `uio`
-
 Micro IO package (`uio`) is a pure python light JSON server implementation running on native python libraries.
 
-## `uio.srv`
+# `uio.srv`
 
 Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax.
 
-### Quickstart
+## Quickstart
 
 Let's create a server with a simple `/test` endpoint in a python module named `test.py`:
 
@@ -25,7 +23,7 @@ def launchApp():
     app.run(ssl=False)
 ```
 
-And then run the server using python interpreter:
+Server can be run from python interpreter:
 
 ```python
 >>> import test
@@ -34,22 +32,45 @@ INFO:uio.srv:listening on 127.0.0.1:5000
 CTRL+C to stop...
 ```
 
+## Extracting values from url query
+
 Now going to `127.0.0.1:5000/test` with any browser gives:
 ```
 {"status": 200, "result": [null, null]}
 ```
 
-`[null, null]` are the returned values `a` and `b` from `do_test` function.
-
-### Parameter values and context
-
-Parameter values are extracted from query string. Let's type `127.0.0.1:5000/test?b=12&a=Paris` in the address bar:
+`[null, null]` are the returned values `a` and `b` from `do_test` function. They can be extracted from query string. Let's type `127.0.0.1:5000/test?b=12&a=Paris` in the address bar:
 
 ```
 {"status": 200, "result": ["Paris", "12"]}
 ```
 
-Unexpected values in the query string are ignored. But there is a convenient way to catch them rewriting the function with varargs:
+Returned value from query strig are `str` only. Unexpected values in the query string are ignored but there is a [convenient way to catch them](#catching-unexpected-values).
+
+## Extracting values from url path
+
+Values can also be extracted from url path with or without a typing precision.
+
+```python
+@srv.bind("/<int:b>/<a>")
+def do_test(a, b):
+    # write some code and return something
+    return a, b
+```
+
+This binding creates multiple endpoint possibilities. Let's try `127.0.0.1:5000/5/test`:
+
+```
+{"status": 200, "result": ["test", 5]}
+```
+
+Value extracted from url can be overrided by thoses from query... `http://127.0.0.1:5000/5/test?a=2&b=6`:
+
+```
+{"status": 200, "result": ["2", "6"]}
+```
+
+## Catching unexpected values...
 
 ```python
 @srv.bind("/test")

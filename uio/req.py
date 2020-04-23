@@ -17,7 +17,7 @@ else:
     from urllib import urlencode
 
 
-LOGGER = logging.getLogger("uio-req")
+LOGGER = logging.getLogger("uio.req")
 
 
 def connect(peer):
