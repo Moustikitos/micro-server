@@ -50,13 +50,6 @@ if sys.version_info[0] >= 3:
     def getHeader(http_msg, key, alt=False):
         return http_msg.get(key, alt)
 
-    def inspectBinded(function):
-        params = inspect.signature(function).parameters.values()
-        args = [p.name for p in params if p.kind == p.POSITIONAL_OR_KEYWORD]
-        uses_vargs = any([p for p in params if p.kind == p.VAR_POSITIONAL])
-        uses_kwargs = any([p for p in params if p.kind == p.VAR_KEYWORD])
-        return args, uses_vargs, uses_kwargs
-
 else:
     from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
     from urllib import quote
@@ -64,14 +57,6 @@ else:
 
     def getHeader(http_msg, key, alt=False):
         http_msg.getheader(key, alt)
-
-    def inspectBinded(function):
-        ins = inspect.getargspec(function)
-        return (
-            ins.args,
-            ins.varargs is not None,
-            ins.keywords is not None
-        )
 
     json.JSONDecodeError = ValueError
 
@@ -124,7 +109,7 @@ class Capsule:
         self.__dict__.update(params)
 
     def __call__(self, *args, **kwargs):
-        setattr(self.func, "urlmatch", getattr(self, "urlmatch", {}))
+        setattr(self.func, "urlmatch", getattr(self, "urlmatch", [None, None]))
         return self.func(*args, **kwargs)
 
 
@@ -339,55 +324,59 @@ def bind(path, methods=["GET"]):
     """
 
     def decorator(function):
-        args, uses_vargs, uses_kwargs = inspectBinded(function)
+        insp = inspect.getargspec(function)
 
-        # create the wrapper called by _call
         def wrapper(method, url, headers, data):
-            # get parameters from url query string
+            # get path and query from url
             parse = urlparse.urlparse(url)
             parse_qsl = urlparse.parse_qsl(parse.query)
+
             # gather variables from url path
             _urlmatch = {}
-            if hasattr(wrapper, "urlmatch"):
-                vars_, regexp = getattr(wrapper, "urlmatch", [None, None])
+            vars_, regexp = getattr(wrapper, "urlmatch", [None, None])
+            if vars_ is not regexp:
                 for (name, typ_), value in zip(
                     vars_.items(), regexp.match(parse.path).groups()
                 ):
                     _urlmatch[name] = __builtins__[typ_](value)
-            # create positional argument tuple using OrderedDict
-            positional = tuple(
+            # create OrderedDict of positional argument
+            positional = OrderedDict([(k, None) for k in insp.args])
+            if insp.defaults is not None:
+                positional.update(
+                    dict(zip(insp.args[-len(insp.defaults):], insp.defaults))
+                )
+            positional.update(
                 OrderedDict(
-                    [(k, _urlmatch.pop(k, None)) for k in args],
-                    **OrderedDict((k, v) for k, v in parse_qsl if k in args)
-                ).values()
+                    (k, _urlmatch.pop(k)) for k in insp.args if k in _urlmatch
+                ),
+                **OrderedDict(
+                    (k, v) for k, v in parse_qsl if k in insp.args
+                )
             )
-            # create dict of non positional argument for varargs tuple
+            # create dict of non positional argument
             not_positional = dict(
-                [(k, v) for k, v in parse_qsl if k not in args],
+                [(k, v) for k, v in parse_qsl if k not in insp.args],
                 **_urlmatch
             )
-            # create dict for keywordargs dict
-            kwargs = {} if uses_vargs else not_positional
-            if uses_kwargs:
-                kwargs.update({
-                        "url": url, "headers": headers,
-                        "data": data, "method": method
-                    }
+
+            args = tuple(positional.values())
+            kwargs = {} if insp.varargs is not None else not_positional
+            if insp.keywords is not None:
+                kwargs.update(
+                    url=url, headers=headers, data=data, method=method
                 )
-            if uses_vargs:
-                positional += \
-                    (method, url, headers, data) if not uses_kwargs else () + \
-                    tuple(not_positional.values())
-            return function(*positional, **kwargs)
+            if insp.varargs is not None:
+                args += (
+                    (method, url, headers, data)
+                    if insp.keywords is None else ()
+                 ) + tuple(not_positional.values())
+            return function(*args, **kwargs)
 
         # register wrapper in a container used to keep informations computed
         # during registration
         container = Capsule(
             wrapper, wrapped=function.__name__, path=path, methods=methods,
-            inspect={
-                "args": args, "uses_vargs": uses_vargs,
-                "uses_kwargs": uses_kwargs
-            }
+            inspect=insp
         )
         # register wrapper in MicroJsonApp.ENDPOINTS
         for method in methods:
