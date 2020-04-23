@@ -6,9 +6,9 @@ Micro IO package (`uio`) is a pure python light JSON server implementation runni
 
 Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax.
 
-## Quickstart
+## Fast and simple
 
-Let's create a server with a simple `/test` endpoint in a python module named `test.py`:
+Let's create a server with `/test` endpoint in a python module named `test.py`:
 
 ```python
 from uio import srv
@@ -32,20 +32,20 @@ INFO:uio.srv:listening on 127.0.0.1:5000
 CTRL+C to stop...
 ```
 
-## Extracting values from url query
-
 Now going to `127.0.0.1:5000/test` with any browser gives:
 ```
 {"status": 200, "result": [null, null]}
 ```
 
-`[null, null]` are the returned values `a` and `b` from `do_test` function. They can be extracted from query string. Let's type `127.0.0.1:5000/test?b=12&a=Paris` in the address bar:
+## Extracting values from url query
+
+`[null, null]` above are the returned values `a` and `b` from `do_test` function. They can be extracted from query string. Let's type `127.0.0.1:5000/test?b=12&a=Paris` in the address bar:
 
 ```
 {"status": 200, "result": ["Paris", "12"]}
 ```
 
-Returned value from query strig are `str` only. Unexpected values in the query string are ignored but there is a [convenient way to catch them](#catching-unexpected-values).
+Returned value from query are `str` only. Unexpected values are ignored but there is a [convenient way to catch them](#catching-unexpected-values).
 
 ## Extracting values from url path
 
@@ -64,13 +64,21 @@ This binding creates multiple endpoint possibilities. Let's try `127.0.0.1:5000/
 {"status": 200, "result": ["test", 5]}
 ```
 
-Value extracted from url can be overrided by thoses from query... `http://127.0.0.1:5000/5/test?a=2&b=6`:
+Values from url can be overrided by thoses from query... `http://127.0.0.1:5000/5/test?a=2&b=6`:
 
 ```
 {"status": 200, "result": ["2", "6"]}
 ```
 
 ## Catching unexpected values...
+
+Using varargs or/and keywordargs is a convenient way to catch unexpected values from url query and HTTP context. HTTP Context is defined by a method, a full url, headers and data as python dictionary.
+
+When HTTP context is catched by `*args`, unexpected values from query string are appended next.
+
+Url used for this chapter `127.0.0.1:5000/test?b=12&a=Paris&unexpected=there`.
+
+### Varargs (`*args`)
 
 ```python
 @srv.bind("/test")
@@ -80,13 +88,11 @@ def do_test(a, b, *args):
     return a, b, args
 ```
 
-Result from `127.0.0.1:5000/test?b=12&a=Paris&unexpected=there`:
-
 ```
 {"status": 200, "result": ["Paris", "12", ["GET", "http://127.0.0.1:5000/test?b=12&a=Paris&unexpected=there", {"host": "127.0.0.1:5000", "connection": "keep-alive", "cache-control": "max-age=0", "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36", "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9", "sec-fetch-site": "none", "sec-fetch-mode": "navigate", "sec-fetch-user": "?1", "sec-fetch-dest": "document", "accept-encoding": "gzip, deflate, br", "accept-language": "fr,en-US;q=0.9,en;q=0.8"}, {}, "there"]]}
 ```
 
-All HTTP context (method, url, headers and data) is catched by `*args`. Unexpected values from query string are appended next. This is quite nice, but there is a more convenient way to catch HTTP context and unexpected values: kwargs
+### Keywordargs (`**kwargs`)
 
 ```python
 @srv.bind("/test")
@@ -96,10 +102,22 @@ def do_test(a, b, **kwargs):
     return a, b, kwargs
 ```
 
-Result from `127.0.0.1:5000/test?b=12&a=Paris&unexpected=there`:
-
 ```
 {"status": 200, "result": ["Paris", "12", {"unexpected": "there", "url": "http://127.0.0.1:5000/test?b=12&a=Paris&unexpected=there", "headers": {"host": "127.0.0.1:5000", "connection": "keep-alive", "cache-control": "max-age=0", "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36", "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9", "sec-fetch-site": "none", "sec-fetch-mode": "navigate", "sec-fetch-user": "?1", "sec-fetch-dest": "document", "accept-encoding": "gzip, deflate, br", "accept-language": "fr,en-US;q=0.9,en;q=0.8"}, "data": {}, "method": "GET"}]}
+```
+
+### Both (`*args`, `**kwargs`)
+
+```python
+@srv.bind("/test")
+def do_test(a, b, , *args, **kwargs):
+    # write some code and return something
+    # kwargs is a dict
+    return a, b, args, kwargs
+```
+
+```
+{"status": 200, "result": ["Paris", "12", ["there"], {"url": "http://127.0.0.1:5000/test?b=12&a=Paris&unexpected=there", "headers": {"host": "127.0.0.1:5000", "connection": "keep-alive", "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36", "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9", "sec-fetch-site": "none", "sec-fetch-mode": "navigate", "sec-fetch-dest": "document", "accept-encoding": "gzip, deflate, br", "accept-language": "fr,en-US;q=0.9,en;q=0.8"}, "data": {}, "method": "GET"}]}
 ```
 
 ## `uio.req`
