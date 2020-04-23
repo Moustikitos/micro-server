@@ -4,7 +4,7 @@ Micro IO package (`uio`) is a pure python light JSON server implementation runni
 
 # `uio.srv`
 
-Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax.
+Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax. `srv` module is autonomous and can be used outside `uio` package.
 
 ## Fast and simple
 
@@ -112,7 +112,6 @@ def do_test(a, b, **kwargs):
 @srv.bind("/test")
 def do_test(a, b, *args, **kwargs):
     # write some code and return something
-    # kwargs is a dict
     return a, b, args, kwargs
 ```
 
