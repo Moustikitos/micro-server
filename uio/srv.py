@@ -16,9 +16,9 @@ Options:
   -h, --help            show this help message and exit
   -s, --ssl             activate ssl socket wraping
   -l LOGLEVEL, --log-level=LOGLEVEL
-                        set log level
-  -i HOST, --ip=HOST    ip to run from
-  -p PORT, --port=PORT  port to use
+                        set log level from 1 to 50 [default: 20]
+  -i HOST, --ip=HOST    ip to run from             [default: 127.0.0.1]
+  -p PORT, --port=PORT  port to use                [default: 5000]
 ```
 
 BINDINGS is a list of python modules containing python binded functions.
@@ -39,16 +39,23 @@ import logging
 import traceback
 import importlib
 
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from optparse import OptionParser
 
 if sys.version_info[0] >= 3:
     from http.server import HTTPServer, BaseHTTPRequestHandler
     import urllib.parse as urlparse
-    quote = urlparse.quote
 
     def getHeader(http_msg, key, alt=False):
         return http_msg.get(key, alt)
+
+    def getArgSpec(function):
+        insp = inspect.getfullargspec(function)
+        FixArgSpec = namedtuple("FixArgSpec", insp._fields + ("keywords", ))
+        _insp = FixArgSpec(**dict(insp._asdict(), keywords=insp.varkw))
+        return _insp
+
+    quote = urlparse.quote
 
 else:
     from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
@@ -59,6 +66,8 @@ else:
         http_msg.getheader(key, alt)
 
     json.JSONDecodeError = ValueError
+    getArgSpec = inspect.getargspec
+
 
 LOGGER = logging.getLogger("uio.srv")
 logging.basicConfig()
@@ -146,8 +155,8 @@ class MicroJsonApp:
         else:
             http_input = environ["wsgi.input"].read()
 
-        data = _call(
-            func, method, _rebuild_url(environ),
+        data = _context_call(
+            func, method, MicroJsonApp._rebuild_url(environ),
             dict(
                 [k.replace("HTTP_", "").replace("_", "-").lower(), v]
                 for k, v in environ.items() if k.startswith("HTTP_")
@@ -166,6 +175,34 @@ class MicroJsonApp:
         )
         write(data.encode("latin-1") if not isinstance(data, bytes) else data)
         return b""
+
+    @staticmethod
+    def _rebuild_url(env):
+        """
+        Rebuild full url from WSGI environement according to PEP #3333.
+        https://www.python.org/dev/peps/pep-3333
+        """
+        url = env['wsgi.url_scheme'] + '://'
+
+        if env.get('HTTP_HOST'):
+            url += env['HTTP_HOST']
+        else:
+            url += env['SERVER_NAME']
+
+            if env['wsgi.url_scheme'] == 'https':
+                if env['SERVER_PORT'] != '443':
+                    url += ':' + env['SERVER_PORT']
+            else:
+                if env['SERVER_PORT'] != '80':
+                    url += ':' + env['SERVER_PORT']
+
+        url += quote(env.get('SCRIPT_NAME', ''))
+        url += quote(env.get('PATH_INFO', ''))
+
+        if env.get('QUERY_STRING'):
+            url += '?' + env['QUERY_STRING']
+
+        return url
 
     def wrap(self):
         if not hasattr(self, "httpd"):
@@ -235,7 +272,7 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
             "https://%s:%s%s" if isinstance(self.server.socket, ssl.SSLSocket)\
             else "http://%s:%s%s"
 
-        data = _call(
+        data = _context_call(
             func, method, url % (address, port, self.path),
             dict([k.lower(), v] for k, v in dict(self.headers).items()),
             http_input.decode("latin-1") if isinstance(http_input, bytes)
@@ -254,35 +291,7 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
         )
 
 
-def _rebuild_url(env):
-    """
-    Rebuild full url from WSGI environement according to PEP #3333.
-    https://www.python.org/dev/peps/pep-3333
-    """
-    url = env['wsgi.url_scheme'] + '://'
-
-    if env.get('HTTP_HOST'):
-        url += env['HTTP_HOST']
-    else:
-        url += env['SERVER_NAME']
-
-        if env['wsgi.url_scheme'] == 'https':
-            if env['SERVER_PORT'] != '443':
-                url += ':' + env['SERVER_PORT']
-        else:
-            if env['SERVER_PORT'] != '80':
-                url += ':' + env['SERVER_PORT']
-
-    url += quote(env.get('SCRIPT_NAME', ''))
-    url += quote(env.get('PATH_INFO', ''))
-
-    if env.get('QUERY_STRING'):
-        url += '?' + env['QUERY_STRING']
-
-    return url
-
-
-def _call(func, method, url, header, data):
+def _context_call(func, method, url, header, data):
     if func is None:
         LOGGER.error("no endpoind found behind %s", url)
         return {"status": 400, "result": "not found"}
@@ -330,13 +339,15 @@ def bind(path, methods=["GET"]):
     Returns:
         :func:`decorator`: decorated function
     """
-    if not path.startswith("/"):
-        path = "/" + path
-    if path.endswith("/"):
-        path = path[:-1]
+    if path != "/":
+        if not path.startswith("/"):
+            path = "/" + path
+        if path.endswith("/"):
+            path = path[:-1]
 
     def decorator(function):
-        insp = inspect.getargspec(function)
+        # inspect function
+        insp = getArgSpec(function)
 
         def wrapper(method, url, headers, data):
             # get path and query from url
@@ -346,7 +357,7 @@ def bind(path, methods=["GET"]):
             # gather variables from url path
             _urlmatch = {}
             vars_, regexp = getattr(wrapper, "urlmatch", [None, None])
-            if vars_ is not regexp:
+            if vars_ is not regexp:  # ie vars != None and regexp != None
                 try:
                     for (name, typ_), value in zip(
                         vars_.items(), regexp.match(parse.path).groups()
@@ -355,6 +366,7 @@ def bind(path, methods=["GET"]):
                 except Exception as error:
                     LOGGER.error("%r\n%s", error, traceback.format_exc())
                     raise Exception("Error during extraction from url path")
+
             # create OrderedDict of positional argument
             positional = OrderedDict([(k, None) for k in insp.args])
             if insp.defaults is not None:
@@ -369,14 +381,14 @@ def bind(path, methods=["GET"]):
                     (k, v) for k, v in parse_qsl if k in insp.args
                 )
             )
+
             # create dict of non positional argument
             not_positional = dict(
                 [(k, v) for k, v in parse_qsl if k not in insp.args],
                 **_urlmatch
             )
 
-            LOGGER.debug(">> %r %r", positional, not_positional)
-
+            # generate *args and **kwargs
             args = tuple(positional.values())
             kwargs = {} if insp.varargs is not None else not_positional
             if insp.keywords is not None:
@@ -392,11 +404,12 @@ def bind(path, methods=["GET"]):
             return function(*args, **kwargs)
 
         # register wrapper in a container used to keep informations computed
-        # during registration
+        # during registration for future access
         container = Capsule(
             wrapper, wrapped=function.__name__, path=path, methods=methods,
             inspect=insp
         )
+
         # register wrapper in MicroJsonApp.ENDPOINTS
         for method in methods:
             if method not in MicroJsonApp.ENDPOINTS:
@@ -420,16 +433,18 @@ def main():
         help="activate ssl socket wraping"
     )
     parser.add_option(
-        "-l", "--log-level", action="store", dest="loglevel", default=50,
-        type="int", help="set log level"
+        "-l", "--log-level", action="store", dest="loglevel", default=20,
+        type="int",
+        help="set log level from 1 to 50 [default: 20]"
     )
     parser.add_option(
         "-i", "--ip", action="store", dest="host", default="127.0.0.1",
-        help="ip to run from"
+        help="ip to run from             [default: 127.0.0.1]"
     )
     parser.add_option(
         "-p", "--port", action="store", dest="port", default=5000,
-        type="int", help="port to use"
+        type="int",
+        help="port to use                [default: 5000]"
     )
     (options, args) = parser.parse_args()
 
@@ -439,19 +454,19 @@ def main():
     if len(args) == 0 and __name__ == "__main__":
         # url, headers, data and method loosed
         @bind("/")
-        def test0(a, b):
+        def test0(a, b=0):
             return a, b
         # get url, headers, data and method in args
         @bind("/vargs")
-        def test1(a, b, *args):
+        def test1(a, b=1, *args):
             return (a, b) + args
         # get url, headers, data and method in kwargs
         @bind("/kwargs")
-        def test2(a, b, **kwargs):
+        def test2(a, b=2, **kwargs):
             return a, b, kwargs
         # get url, headers, data and method in kwargs
         @bind("/vargs_kwargs")
-        def test3(a, b, *args, **kwargs):
+        def test3(a, b=3, *args, **kwargs):
             return (a, b) + args, kwargs
     else:
         for name in args:
@@ -460,13 +475,10 @@ def main():
             except ImportError as error:
                 LOGGER.error("%r\n%s", error, traceback.format_exc())
 
-    # namespace fix :
-    # __main__.MicroJsonApp.ENDPOINTS has to be updated
+    # namespace fix: # __main__.MicroJsonApp.ENDPOINTS has to be updated
     uio_srv = sys.modules.get("uio.srv", None)
     if uio_srv is not None:
-        MicroJsonApp.ENDPOINTS.update(
-            uio_srv.MicroJsonApp.ENDPOINTS
-        )
+        MicroJsonApp.ENDPOINTS.update(uio_srv.MicroJsonApp.ENDPOINTS)
 
     app.run(ssl=options.ssl)
 
