@@ -2,9 +2,17 @@
 
 Micro IO package (`uio`) is a pure python light JSON server implementation running on native python libraries.
 
+# Install
+
+```
+$ pip install git+http://github.com/Moustikitos/micro-io#egg=uio
+```
+
 # `uio.srv`
 
-Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax. `srv` module is autonomous and can be used outside `uio` package.
+Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax.
+
+`srv` module can be used in standalone mode outside of `uio` package.
 
 ## Fast and simple
 
@@ -117,6 +125,47 @@ def do_test(a, b, *args, **kwargs):
 
 ```
 {"status": 200, "result": ["Paris", "12", ["there"], {"url": "http://127.0.0.1:5000/test?b=12&a=Paris&unexpected=there", "headers": {"host": "127.0.0.1:5000", "connection": "keep-alive", "upgrade-insecure-requests": "1", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.113 Safari/537.36", "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9", "sec-fetch-site": "none", "sec-fetch-mode": "navigate", "sec-fetch-dest": "document", "accept-encoding": "gzip, deflate, br", "accept-language": "fr,en-US;q=0.9,en;q=0.8"}, "data": {}, "method": "GET"}]}
+```
+
+### Command line
+
+Server can be launched from command line using python module names for bindings. Modules containing binded code have to be found by python. This is not recomended for production.
+
+```
+Usage: srv.py [options] BINDINGS...
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -s, --ssl             activate ssl socket wraping
+  -l LOGLEVEL, --log-level=LOGLEVEL
+                        set log level from 1 to 50 [default: 20]
+  -i HOST, --ip=HOST    ip to run from             [default: 127.0.0.1]
+  -p PORT, --port=PORT  port to use                [default: 5000]
+```
+
+### Run behind a WSGI 
+
+`srv.MicroJsonApp()` can be run behind a python WSGI like [`gunicorn`](https://gunicorn.org/):
+
+```bash
+$ gunicorn 'srv:MicroJsonApp()' --bind=0.0.0.0:5000
+```
+
+`gunicorn` needs an instance of `srv.MicroJsonApp`, it may be configured in a python module and have to be pointed by command line.
+
+Let's consider `wsgi.py` module bellow:
+
+```python
+from uio import srv
+import bindings
+
+# here is the instance gunicorn looks for
+app = srv.MicroJsonApp(host="127.0.0.1", port=5000, loglevel=10)
+```
+
+```bash
+$ gunicorn 'wsgi:app' --bind=0.0.0.0:5000
 ```
 
 ## `uio.req`
