@@ -13,7 +13,7 @@ with open("VERSION") as f1, open("README.md") as f2:
 kw = {
     "version": VERSION,
     "name": "uio",
-    "keywords": ["json", "micro", "HTTP"],
+    "keywords": ["json", "micro", "server", "HTTP"],
     "author": "THOORENS Bruno",
     "author_email": "moustikitos@gmail.com",
     "maintainer": "THOORENS Bruno",

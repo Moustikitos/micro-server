@@ -46,12 +46,20 @@ if sys.version_info[0] >= 3:
     from http.server import HTTPServer, BaseHTTPRequestHandler
     import urllib.parse as urlparse
 
+    # create a namedtuple with fieldnames of namedtuple returned by
+    # `inspgetfullargspec` plus 'keywords'
+    FixArgSpec = namedtuple(
+        "FixArgSpec", (
+            'args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
+            'kwonlydefaults', 'annotations', "keywords"
+        )
+    )
+
     def getHeader(http_msg, key, alt=False):
         return http_msg.get(key, alt)
 
     def getArgSpec(function):
         insp = inspect.getfullargspec(function)
-        FixArgSpec = namedtuple("FixArgSpec", insp._fields + ("keywords", ))
         _insp = FixArgSpec(**dict(insp._asdict(), keywords=insp.varkw))
         return _insp
 
@@ -75,6 +83,7 @@ logging.basicConfig()
 
 class MatchDict(dict):
 
+    # this patern matches <> enclosed characters (markup)
     PATTERN = re.compile("<([^><]*)>")
 
     def __init__(self, *args, **kwargs):
@@ -82,22 +91,33 @@ class MatchDict(dict):
         self._matchers = {}
 
     def __setitem__(self, item, value):
-        if isinstance(item, str):
+        # --> `srv.bind` decorator set a Capsule instance to url path (item)
+        if isinstance(item, str) and isinstance(value, Capsule):
             found = MatchDict.PATTERN.findall(item)
+            # if markup pattern found in url
             if len(found):
+                # create a regexp replacing all markup by '([^/]*)'
+                # '/person/<name>/<int:age>' --> '/person/([^/])*/([^/]*)'
                 regexp = re.compile(
                     "^%s$" % MatchDict.PATTERN.sub("([^/]*)", item)
                 )
+                # pattern could be 'name' or 'type:name'
+                # '<name>'.split(":") == ["name"]
+                # 'type:name'.split(":") == ["type", "name"]
+                # tn[-1] == "name"
+                # vars_ is a dict([('name', type)...])
                 vars_ = OrderedDict(
-                    [tn[-1], "str" if len(tn) < 2 else tn[0]] for tn in [
+                    [tn[-1], __builtins__.get(tn[0], "str")] for tn in [
                         elem.split(":") for elem in found
                     ]
                 )
+                # add 'urlmatch' attribute to Capsule instance
                 setattr(value, "urlmatch", (vars_, regexp))
                 self._matchers[item] = (vars_, regexp)
         return dict.__setitem__(self, item, value)
 
     def get(self, item, default=None):
+        # try to get item as for a normal dict
         value = dict.get(
             self, item, self._matchers.get(
                 item, default
@@ -105,6 +125,8 @@ class MatchDict(dict):
         )
         if value is not None:
             return value
+        # if no value found then it could be a string that matches any of
+        # regexp stored in _matchers
         elif isinstance(item, str):
             for path, (pattern, regexp) in self._matchers.items():
                 if regexp.match(item) is not None:
@@ -122,6 +144,7 @@ class Capsule:
         self.__dict__.update(params)
 
     def __call__(self, *args, **kwargs):
+        # if `srv.bind` set an urlmatch tuple set it to decorated function
         setattr(
             self.func, "urlmatch", getattr(
                 self, "urlmatch", [None, None]
@@ -145,18 +168,15 @@ class MicroJsonApp:
         https://www.python.org/dev/peps/pep-3333
         """
         method = environ["REQUEST_METHOD"]
-
-        func = MicroJsonApp.ENDPOINTS.get(method, {}).get(
-            environ.get("PATH_INFO", "/"), None
-        )
-
+        # method bellow are bodyless so http_input == {}
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
             http_input = "{}"
         else:
             http_input = environ["wsgi.input"].read()
 
         data = _context_call(
-            func, method, MicroJsonApp._rebuild_url(environ),
+            environ.get("PATH_INFO", "/"), method,
+            MicroJsonApp._rebuild_url(environ),
             dict(
                 [k.replace("HTTP_", "").replace("_", "-").lower(), v]
                 for k, v in environ.items() if k.startswith("HTTP_")
@@ -166,13 +186,13 @@ class MicroJsonApp:
         )
 
         statuscode = "%d" % data["status"]
-        data = json.dumps(data)
-
         write = start_response(
             statuscode.decode("latin-1") if isinstance(statuscode, bytes)
             else statuscode,
             (["Content-type", "application/json"],)
         )
+
+        data = json.dumps(data)
         write(data.encode("latin-1") if not isinstance(data, bytes) else data)
         return b""
 
@@ -207,7 +227,7 @@ class MicroJsonApp:
     def wrap(self):
         if not hasattr(self, "httpd"):
             LOGGER.error("ssl wrap done only if server runs from python lib")
-            return
+            return False
         path = os.path.dirname(os.path.abspath(__file__))
         try:
             if not os.path.exists("%s/cert.pem" % path):
@@ -218,6 +238,7 @@ class MicroJsonApp:
                 )
         except Exception as error:
             LOGGER.error("%r\n%s", error, traceback.format_exc())
+            return False
         else:
             if os.path.exists("%s/cert.pem" % path):
                 self.httpd.socket = ssl.wrap_socket(
@@ -226,6 +247,8 @@ class MicroJsonApp:
                     certfile="%s/cert.pem" % path,
                     server_side=True
                 )
+                return True
+        return False
 
     def run(self, ssl=False):
         """
@@ -255,11 +278,7 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def do_(self, method="GET"):
-        func = MicroJsonApp.ENDPOINTS.get(method, {}).get(
-            self.path.split("?")[0], None
-        )
-        address, port = self.server.server_address
-
+        # method bellow are bodyless so http_input == {}
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
             http_input = "{}"
         else:
@@ -267,13 +286,14 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
             http_input = self.rfile.read(
                 int(length) if length is not None else 0
             )
-
+        # if server.socket wrapped then url scheme is https
         url = \
             "https://%s:%s%s" if isinstance(self.server.socket, ssl.SSLSocket)\
             else "http://%s:%s%s"
 
         data = _context_call(
-            func, method, url % (address, port, self.path),
+            self.path.split("?")[0], method,
+            url % (self.server.server_address + (self.path, )),
             dict([k.lower(), v] for k, v in dict(self.headers).items()),
             http_input.decode("latin-1") if isinstance(http_input, bytes)
             else http_input
@@ -291,7 +311,8 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
         )
 
 
-def _context_call(func, method, url, header, data):
+def _context_call(path, method, url, header, data):
+    func = MicroJsonApp.ENDPOINTS.get(method, {}).get(path, None)
     if func is None:
         LOGGER.error("no endpoind found behind %s", url)
         return {"status": 400, "result": "not found"}
@@ -362,7 +383,7 @@ def bind(path, methods=["GET"]):
                     for (name, typ_), value in zip(
                         vars_.items(), regexp.match(parse.path).groups()
                     ):
-                        _urlmatch[name] = __builtins__[typ_](value)
+                        _urlmatch[name] = typ_(value)
                 except Exception as error:
                     LOGGER.error("%r\n%s", error, traceback.format_exc())
                     raise Exception("Error during extraction from url path")
@@ -384,8 +405,8 @@ def bind(path, methods=["GET"]):
 
             # create dict of non positional argument
             not_positional = dict(
-                [(k, v) for k, v in parse_qsl if k not in insp.args],
-                **_urlmatch
+                _urlmatch,
+                **dict([(k, v) for k, v in parse_qsl if k not in insp.args])
             )
 
             # generate *args and **kwargs
