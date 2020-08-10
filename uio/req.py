@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # © THOORENS Bruno
 
+"""
+"""
+
 import re
 import sys
 import json
@@ -15,7 +18,6 @@ else:
     from urllib2 import Request, OpenerDirector, HTTPHandler, HTTPSHandler
     from urllib2 import BaseHandler
     from urllib import urlencode
-
 
 LOGGER = logging.getLogger("uio.req")
 
@@ -65,7 +67,8 @@ class EndPoint(object):
                     else text,
                 "error": "%r" % err
             }
-        data["status"] = res.getcode()
+        if isinstance(data, dict):
+            data["status"] = res.getcode()
         return data
 
     @staticmethod
