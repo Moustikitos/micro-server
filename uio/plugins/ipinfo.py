@@ -31,6 +31,7 @@ def link(token):
 
 
 def info(ip, **kwargs):
+    kwargs["headers"] = HEADERS
     return req.GET(ip, peer="http://ipinfo.io", **kwargs)
 
 
