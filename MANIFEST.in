@@ -1,0 +1,3 @@
+recursive-include plugins *
+include LICENSE
+include VERSION

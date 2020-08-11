@@ -444,6 +444,17 @@ def bind(path, methods=["GET"]):
     return decorator
 
 
+def unbind(path, methods=["GET"]):
+    for method in methods:
+        if method in MicroJsonApp.ENDPOINTS:
+            MicroJsonApp.ENDPOINTS[method]._matcher.pop(path, False)
+            container = MicroJsonApp.ENDPOINTS[method].pop(path, False)
+            LOGGER.debug(
+                "%s unbound from 'HTTP %s %s' request",
+                container.func.__name__, method, path
+            )
+
+
 def main():
     parser = OptionParser(
         usage="usage: %prog [options] BINDINGS...",
