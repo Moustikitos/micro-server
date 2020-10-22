@@ -92,12 +92,12 @@ class EndPoint(object):
         to_jsonify = kwargs.pop("jsonify", None)
 
         # construct base url
-        chain = "/".join(args)
+        chain = "/".join([a for a in args if a])
         if not chain.startswith("/"):
             chain = "/" + chain
         else:
             chain = chain.replace("//", "/")
-        url = kwargs.pop('peer', EndPoint.peer) + chain
+        url = (kwargs.pop("peer", False) or EndPoint.peer) + chain
 
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
             if len(kwargs):
