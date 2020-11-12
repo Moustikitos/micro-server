@@ -26,11 +26,15 @@ def connect(peer):
     return EndPoint.connect(peer)
 
 
+def disconnect():
+    return EndPoint.disconnect()
+
+
 class EndPoint(object):
 
     timeout = 5
     opener = None
-    peer = "http://127.0.0.1:5000"
+    peer = None
     startswith_ = re.compile(r"^_[0-9A-Fa-f].*")
 
     def __init__(self, elem=None, parent=None, method=lambda: None):
@@ -97,7 +101,10 @@ class EndPoint(object):
             chain = "/" + chain
         else:
             chain = chain.replace("//", "/")
-        url = (kwargs.pop("peer", False) or EndPoint.peer) + chain
+        peer = kwargs.pop("peer", False) or EndPoint.peer
+        if peer in [False, None]:
+            raise Exception("No peer connection available")
+        url = peer + chain
 
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
             if len(kwargs):
@@ -117,12 +124,9 @@ class EndPoint(object):
             # if explicitly asked to send data as json
             elif to_jsonify is not None:
                 data = json.dumps(to_jsonify)
-            # else send kwargs as json
-            elif len(kwargs):
-                data = json.dumps(kwargs)
             # if nothing provided send void json as data
             else:
-                data = json.dumps({})
+                data = json.dumps(kwargs)
             req = Request(url, data.encode('utf-8'), headers)
 
         # tweak request
@@ -135,13 +139,17 @@ class EndPoint(object):
         try:
             EndPoint.opener.open(peer, timeout=EndPoint.timeout)
         except Exception:
-            EndPoint.peer = "http://127.0.0.1:5000"
+            EndPoint.peer = None
             return False
         else:
             if peer.endswith("/"):
                 peer = peer[:-1]
             EndPoint.peer = peer
             return True
+
+    @staticmethod
+    def disconnect():
+        EndPoint.peer = None
 
     def add_handler(self, handler):
         if not isinstance(handler, BaseHandler):

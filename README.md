@@ -170,12 +170,35 @@ $ gunicorn 'wsgi:app' --bind=0.0.0.0:5000
 
 ## `uio.req`
 
-## `uio.zjsn`
+Provides a pythonic way to fetch http calls.
 
-## Plugins
+### Bodyless HTTP calls
 
-### `bittrex`
+Http calls `GET`, `DELETE`, `HEAD`, `OPTIONS` and `TRACE` are bodyless ie no data can be sent. All keyword arguments will be converted into an url query string.
 
-### `ipinfo`
+```python
+from uio import req
 
-### `notify`
+# first connect to a peer
+req.connect("https://dexplorer.ark.io:8443")
+# https://dexplorer.ark.io:8443/api/delegates
+resp = req.GET.api.delegates()
+# https://dexplorer.ark.io:8443/api/delegates?orderBy=username:asc
+resp = req.GET.api.delegates(orderBy="username:asc")
+```
+
+#### `peer` keyword
+
+```python
+# https://dexplorer.ark.io:8443/api/delegates?orderBy=username:asc
+resp = req.GET.api.delegates(orderBy="username:asc", peer="https://dexplorer.ark.io:8443")
+```
+
+### Other HTTP calls
+
+Http calls `CONNECT`, `POST`, `PATCH`, `PUT` and `DELETE` allow data to be sent. It can be done as json-string or url-encoded-string.
+
+#### `peer`
+#### `headers`
+#### `to_jsonify`
+#### `to_urlencode`
