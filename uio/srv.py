@@ -55,10 +55,10 @@ if sys.version_info[0] >= 3:
         )
     )
 
-    def getHeader(http_msg, key, alt=False):
+    def _get_header(http_msg, key, alt=False):
         return http_msg.get(key, alt)
 
-    def getArgSpec(function):
+    def _get_arg_spec(function):
         insp = inspect.getfullargspec(function)
         _insp = FixArgSpec(**dict(insp._asdict(), keywords=insp.varkw))
         return _insp
@@ -70,11 +70,11 @@ else:
     from urllib import quote
     import urlparse
 
-    def getHeader(http_msg, key, alt=False):
+    def _get_header(http_msg, key, alt=False):
         http_msg.getheader(key, alt)
 
     json.JSONDecodeError = ValueError
-    getArgSpec = inspect.getargspec
+    _get_arg_spec = inspect.getargspec
 
 
 LOGGER = logging.getLogger("uio.srv")
@@ -102,7 +102,7 @@ class MatchDict(dict):
                     "^%s$" % MatchDict.PATTERN.sub("([^/]*)", item)
                 )
                 # pattern could be 'name' or 'type:name'
-                # '<name>'.split(":") == ["name"]
+                # 'name'.split(":") == ["name"]
                 # 'type:name'.split(":") == ["type", "name"]
                 # tn[-1] == "name"
                 # vars_ is a dict([('name', type)...])
@@ -144,7 +144,7 @@ class Capsule:
         self.__dict__.update(params)
 
     def __call__(self, *args, **kwargs):
-        # if `srv.bind` set an urlmatch tuple set it to decorated function
+        # if `srv.bind` set an urlmatch tuple, set it to decorated function
         setattr(
             self.func, "urlmatch", getattr(
                 self, "urlmatch", [None, None]
@@ -282,7 +282,7 @@ class MicroJsonHandler(BaseHTTPRequestHandler):
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
             http_input = "{}"
         else:
-            length = getHeader(self.headers, 'content-length')
+            length = _get_header(self.headers, 'content-length')
             http_input = self.rfile.read(
                 int(length) if length is not None else 0
             )
@@ -368,7 +368,7 @@ def bind(path, methods=["GET"]):
 
     def decorator(function):
         # inspect function
-        insp = getArgSpec(function)
+        insp = _get_arg_spec(function)
 
         def wrapper(method, url, headers, data):
             # get path and query from url
