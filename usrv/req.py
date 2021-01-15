@@ -91,7 +91,10 @@ class EndPoint(object):
     @staticmethod
     def build_req(method="GET", *args, **kwargs):
         method = method.upper()
-        headers = kwargs.pop("headers", {"Content-type": "application/json"})
+        headers = kwargs.pop("headers", {
+            "Content-type": "application/json",
+            "User-agent": "Python/usrv"
+        })
         to_urlencode = kwargs.pop("urlencode", None)
         to_jsonify = kwargs.pop("jsonify", None)
 
@@ -130,7 +133,6 @@ class EndPoint(object):
             req = Request(url, data.encode('utf-8'), headers)
 
         # tweak request
-        req.add_header("User-agent", "Mozilla/5.0")
         req.get_method = lambda: method
         return req
 
