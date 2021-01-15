@@ -329,7 +329,12 @@ def _context_call(path, method, url, header, data):
             result = "%s raise an error: %r" % (func, error)
         else:
             status = 200
-    return {"status": status, "result": result}
+    return dict(
+        {"status": status}, **(
+            result if isinstance(result, dict) else
+            {"result": result}
+        )
+    )
 
 
 def bind(path, methods=["GET"]):
