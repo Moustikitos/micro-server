@@ -5,7 +5,7 @@ import time
 import hmac
 import hashlib
 
-from uio import req, loadJson
+from usrv import req, loadJson
 
 
 TREX_KEY = None

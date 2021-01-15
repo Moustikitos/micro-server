@@ -3,7 +3,7 @@
 
 import base64
 
-from uio import req, loadJson
+from usrv import req, loadJson
 
 
 def freemobile_sendmsg(title, body):

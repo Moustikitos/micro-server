@@ -3,7 +3,7 @@
 
 import socket
 
-from uio import req
+from usrv import req
 
 HEADERS = {
     "Content-Type": "application/json",
