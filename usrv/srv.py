@@ -2,7 +2,7 @@
 # © THOORENS Bruno
 
 """
-This module can be run indepenently from the `uio` package. It contains all
+This module can be run indepenently from the `usrv` package. It contains all
 the utilities to launch a json server (ie, you get and send json) from python
 lib or python WGSI (highly recommended in production mode).
 
@@ -77,7 +77,7 @@ else:
     _get_arg_spec = inspect.getargspec
 
 
-LOGGER = logging.getLogger("uio.srv")
+LOGGER = logging.getLogger("usrv.srv")
 logging.basicConfig()
 
 
@@ -513,9 +513,9 @@ def main():
                 LOGGER.error("%r\n%s", error, traceback.format_exc())
 
     # namespace fix: # __main__.MicroJsonApp.ENDPOINTS has to be updated
-    uio_srv = sys.modules.get("uio.srv", None)
-    if uio_srv is not None:
-        MicroJsonApp.ENDPOINTS.update(uio_srv.MicroJsonApp.ENDPOINTS)
+    usrv_srv = sys.modules.get("usrv.srv", None)
+    if usrv_srv is not None:
+        MicroJsonApp.ENDPOINTS.update(usrv_srv.MicroJsonApp.ENDPOINTS)
 
     app.run(ssl=options.ssl)
 

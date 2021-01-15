@@ -12,22 +12,22 @@ with open("VERSION") as f1, open("README.md") as f2:
 
 kw = {
     "version": VERSION,
-    "name": "uio",
+    "name": "usrv",
     "keywords": ["json", "micro", "server", "HTTP"],
     "author": "THOORENS Bruno",
     "author_email": "moustikitos@gmail.com",
     "maintainer": "THOORENS Bruno",
     "maintainer_email": "moustikitos@gmail.com",
-    "url": "https://github.com/Moustikitos/micro-io",
+    "url": "https://github.com/Moustikitos/micro-server",
     "download_url":
-        "https://github.com/Moustikitos/micro-io/archive/master.zip",
+        "https://github.com/Moustikitos/micro-server/archive/master.zip",
     "include_package_data": True,
     "description": "Low footprint HTTP stuff with JSON",
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
-    "packages": ["uio"],
+    "packages": ["usrv"],
     "install_requires": [],
-    "license": "Cpyright 2020 - THOORENS Bruno",
+    "license": "Cpyright 2020 - 2021 THOORENS Bruno",
     "classifiers": [
         "Development Status :: 3 - Alpha",
         "Environment :: Console",

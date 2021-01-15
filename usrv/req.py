@@ -19,7 +19,7 @@ else:
     from urllib2 import BaseHandler
     from urllib import urlencode
 
-LOGGER = logging.getLogger("uio.req")
+LOGGER = logging.getLogger("usrv.req")
 
 
 def connect(peer):

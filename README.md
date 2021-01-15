@@ -1,6 +1,6 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-io/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE)
 
-Micro IO package (`uio`) is a pure python light JSON server implementation running on native python libraries.
+Micro IO package (`usrv`) is a pure python light JSON server implementation running on native python libraries.
 
 ### Support this project
  
@@ -14,21 +14,21 @@ Micro IO package (`uio`) is a pure python light JSON server implementation runni
 # Install
 
 ```
-$ pip install git+http://github.com/Moustikitos/micro-io#egg=uio
+$ pip install git+http://github.com/Moustikitos/micro-server#egg=usrv
 ```
 
-# `uio.srv`
+# `usrv.srv`
 
 Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax.
 
-`srv` module can be used in standalone mode outside of `uio` package.
+`srv` module can be used in standalone mode outside of `usrv` package.
 
 ## Fast and simple
 
 Let's create a server with `/test` endpoint in a python module named `test.py`:
 
 ```python
-from uio import srv
+from usrv import srv
 
 @srv.bind("/test")
 def do_test(a, b):
@@ -45,7 +45,7 @@ Server can be run from python interpreter:
 ```python
 >>> import test
 >>> test.launchApp()
-INFO:uio.srv:listening on 127.0.0.1:5000
+INFO:usrv.srv:listening on 127.0.0.1:5000
 CTRL+C to stop...
 ```
 
@@ -166,7 +166,7 @@ $ gunicorn 'srv:MicroJsonApp()' --bind=0.0.0.0:5000
 Let's consider `wsgi.py` module bellow:
 
 ```python
-from uio import srv
+from usrv import srv
 import bindings
 
 # here is the instance gunicorn looks for
@@ -177,7 +177,7 @@ app = srv.MicroJsonApp(host="127.0.0.1", port=5000, loglevel=10)
 $ gunicorn 'wsgi:app' --bind=0.0.0.0:5000
 ```
 
-## `uio.req`
+## `usrv.req`
 
 Provides a pythonic way to fetch http calls.
 
@@ -186,7 +186,7 @@ Provides a pythonic way to fetch http calls.
 Http calls `GET`, `DELETE`, `HEAD`, `OPTIONS` and `TRACE` are bodyless ie no data can be sent. All keyword arguments will be converted into an url query string.
 
 ```python
-from uio import req
+from usrv import req
 
 # first connect to a peer
 req.connect("https://dexplorer.ark.io:8443")
