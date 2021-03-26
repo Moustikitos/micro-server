@@ -1,6 +1,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE)
 
-Micro IO package (`usrv`) is a pure python light JSON server implementation running on native python libraries.
+Micro IO package (`usrv`) is a pure python JSON server implementation.
 
 ### Support this project
  
