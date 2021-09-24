@@ -493,18 +493,22 @@ def main():
         @bind("/")
         def test0(a, b=0):
             return a, b
+
         # get url, headers, data and method in args
         @bind("/vargs")
         def test1(a, b=1, *args):
             return (a, b) + args
+
         # get url, headers, data and method in kwargs
         @bind("/kwargs")
         def test2(a, b=2, **kwargs):
             return a, b, kwargs
+
         # get url, headers, data and method in kwargs
         @bind("/vargs_kwargs")
         def test3(a, b=3, *args, **kwargs):
             return (a, b) + args, kwargs
+
     else:
         for name in args:
             try:

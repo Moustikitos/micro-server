@@ -5,6 +5,7 @@
 """
 
 import re
+import ssl
 import sys
 import json
 import logging
@@ -21,6 +22,10 @@ else:
 
 LOGGER = logging.getLogger("usrv.req")
 
+CTX = ssl.create_default_context()
+CTX.check_hostname = False
+CTX.verify_mode = ssl.CERT_NONE
+
 
 def connect(peer):
     return EndPoint.connect(peer)
@@ -36,6 +41,7 @@ class EndPoint(object):
     opener = None
     peer = None
     startswith_ = re.compile(r"^_[0-9A-Fa-f].*")
+    quiet = False
 
     def __init__(self, elem=None, parent=None, method=lambda: None):
         self.elem = elem
@@ -44,8 +50,8 @@ class EndPoint(object):
 
         if EndPoint.opener is None:
             EndPoint.opener = OpenerDirector()
-            for handler in [HTTPHandler, HTTPSHandler]:
-                EndPoint.opener.add_handler(handler())
+            EndPoint.opener.add_handler(HTTPHandler())
+            EndPoint.opener.add_handler(HTTPSHandler(context=CTX))
 
     def __getattr__(self, attr):
         if attr not in ["elem", "parent", "method", "chain"]:
@@ -77,6 +83,8 @@ class EndPoint(object):
 
     @staticmethod
     def _open(req):
+        if req is False:
+            return {"success": req}
         try:
             res = EndPoint.opener.open(req, timeout=EndPoint.timeout)
         except Exception as error:
@@ -106,7 +114,11 @@ class EndPoint(object):
             chain = chain.replace("//", "/")
         peer = kwargs.pop("peer", False) or EndPoint.peer
         if peer in [False, None]:
-            raise Exception("No peer connection available")
+            if not EndPoint.quiet:
+                raise Exception("No peer connection available")
+            else:
+                return False
+
         url = peer + chain
 
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
@@ -115,7 +127,7 @@ class EndPoint(object):
             req = Request(url, None, headers)
         else:
             # if data provided other than kwargs use kwargs to build url
-            if to_urlencode != to_jsonify:
+            if to_urlencode is not None or to_jsonify is not None:
                 if len(kwargs):
                     url += "?" + urlencode(kwargs)
             # set content-type as json by default
