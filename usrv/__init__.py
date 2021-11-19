@@ -9,10 +9,7 @@ import logging
 
 # save python familly
 PY3 = True if sys.version_info[0] >= 3 else False
-if PY3:
-    input = input
-else:
-    input = raw_input
+input = input if PY3 else raw_input
 
 # set basic logging
 logging.basicConfig()

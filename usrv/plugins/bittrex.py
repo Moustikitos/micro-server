@@ -126,13 +126,13 @@ POST = req.EndPoint(
 
 
 def use_v3_api():
-    global GET, REQ
+    global GET, POST
 
     GET = req.EndPoint(
         method=lambda *a, **kw:
             _trex_v3call("GET", *a, **bittrex_v3filter(**kw))
     )
-    REQ = req.EndPoint(
+    POST = req.EndPoint(
         method=lambda *a, **kw:
             _trex_v3call("POST", *a, **bittrex_v3filter(**kw))
     )

@@ -26,14 +26,42 @@ def get_public_ip():
     return result
 
 
+def ipinfo_filter(**kwargs):
+    return dict(kwargs, peer="https://ipinfo.io", headers=HEADERS)
+
+
 def link(token):
     HEADERS["Authorization"] = "Bearer %s" % token
 
 
+GET = req.EndPoint(
+    method=lambda *a, **kw: req.EndPoint._call(
+        "GET", *a, **ipinfo_filter(**kw)
+    )
+)
+
+POST = req.EndPoint(
+    method=lambda *a, **kw: req.EndPoint._call(
+        "POST", *a, **ipinfo_filter(**kw)
+    )
+)
+
+PUSH = req.EndPoint(
+    method=lambda *a, **kw: req.EndPoint._call(
+        "PUSH", *a, **ipinfo_filter(**kw)
+    )
+)
+
+DELETE = req.EndPoint(
+    method=lambda *a, **kw: req.EndPoint._call(
+        "DELETE", *a, **ipinfo_filter(**kw)
+    )
+)
+
+
 def info(ip, **kwargs):
-    kwargs["headers"] = HEADERS
-    return req.GET(ip, peer="http://ipinfo.io", **kwargs)
+    return GET(ip, **kwargs)
 
 
 def localize():
-    return req.GET(get_public_ip(), peer="http://ipinfo.io", headers=HEADERS)
+    return info(get_public_ip())
