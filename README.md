@@ -14,7 +14,7 @@ Micro IO package (`usrv`) is a pure python JSON server implementation.
 # Install
 
 ```
-$ pip install git+http://github.com/Moustikitos/micro-server#egg=usrv
+$ pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 ```
 
 # `usrv.srv`
@@ -196,18 +196,19 @@ resp = req.GET.api.delegates()
 resp = req.GET.api.delegates(orderBy="username:asc")
 ```
 
-#### `peer` keyword
+### Other HTTP calls
+
+Http calls `CONNECT`, `POST`, `PATCH`, `PUT` and `DELETE` allow data to be sent. It can be done as json-string or url-encoded-string.
+
+### Specific keywords
+
+#### `peer`
 
 ```python
 # https://dexplorer.ark.io:8443/api/delegates?orderBy=username:asc
 resp = req.GET.api.delegates(orderBy="username:asc", peer="https://dexplorer.ark.io:8443")
 ```
 
-### Other HTTP calls
-
-Http calls `CONNECT`, `POST`, `PATCH`, `PUT` and `DELETE` allow data to be sent. It can be done as json-string or url-encoded-string.
-
-#### `peer`
 #### `headers`
-#### `to_jsonify`
-#### `to_urlencode`
+#### `jsonify`
+#### `urlencode`
