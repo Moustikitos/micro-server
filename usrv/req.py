@@ -39,19 +39,19 @@ class FormData(UserDict):
         return self.append_value(item, value)
 
     def append_json(self, name, value, **kwval):
-        self[name] = {
+        UserDict.__setitem__(self, name, {
             "data": json.dumps(dict(value, **kwval), sort_keys=True).encode(),
             "headers": {"Content-Type": "application/json"}
-        }
+        })
         return self
 
     def append_value(self, name, value, **headers):
-        self[name] = {
+        UserDict.__setitem__(self, name, {
             "data": value if isinstance(value, bytes) else (
                 "%s" % value
             ).encode(),
             "headers": dict({"Content-Type": "plain/text"}, **headers)
-        }
+        })
         return self
 
     def append_file(self, name, path):
@@ -59,11 +59,11 @@ class FormData(UserDict):
             content_type = \
                 mimetypes.guess_type(path)[0] or "application/octet-stream"
             data = io.open(path, "rb").read()
-            self[name] = dict(
-                filename=os.path.basename(path),
-                headers={"Content-Type": content_type},
-                data=data
-            )
+            UserDict.__setitem__(self, name, {
+                "filename": os.path.basename(path),
+                "headers": {"Content-Type": content_type},
+                "data": data
+            })
         return self
 
     def encode(self):
