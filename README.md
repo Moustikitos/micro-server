@@ -210,5 +210,24 @@ resp = req.GET.api.delegates(orderBy="username:asc", peer="https://dexplorer.ark
 ```
 
 #### `headers`
-#### `jsonify`
-#### `urlencode`
+#### `_jsonify`
+#### `_urlencode`
+#### `_multipart`
+
+
+# plugins
+
+## IpInfo
+## Bittrex
+## Notify
+
+## [Pinata](https://www.pinata.cloud/)
+
+```python
+>>> from usrv import pinata
+>>> pinata.link("eyJhb[...]rI7QY")  # JWT token
+>>> pinata.pinFile(r"c:\Users\Toons\Pictures\arky.png")
+{'IpfsHash': 'QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP', 'PinSize': 25293, 'Timestamp': '2021-11-20T21:13:36.853Z', 'isDuplicate': True, 'status': 200}
+```
+
+Check pinned file here : [`arky.png`](ipfs://QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP)

@@ -5,10 +5,16 @@
 """
 
 import re
+import os
+import io
 import ssl
 import sys
 import json
 import logging
+import binascii
+import mimetypes
+
+from collections import UserDict
 
 if sys.version_info[0] >= 3:
     from urllib.request import Request, OpenerDirector, HTTPHandler
@@ -25,6 +31,79 @@ LOGGER = logging.getLogger("usrv.req")
 CTX = ssl.create_default_context()
 CTX.check_hostname = False
 CTX.verify_mode = ssl.CERT_NONE
+
+
+class FormData(UserDict):
+
+    def __setitem__(self, item, value):
+        return self.append_value(item, value)
+
+    def append_json(self, name, value, **kwval):
+        self[name] = {
+            "data": json.dumps(dict(value, **kwval), sort_keys=True).encode(),
+            "headers": {"Content-Type": "application/json"}
+        }
+        return self
+
+    def append_value(self, name, value, **headers):
+        self[name] = {
+            "data": value if isinstance(value, bytes) else (
+                "%s" % value
+            ).encode(),
+            "headers": dict({"Content-Type": "plain/text"}, **headers)
+        }
+        return self
+
+    def append_file(self, name, path):
+        if os.path.isfile(path):
+            content_type = \
+                mimetypes.guess_type(path)[0] or "application/octet-stream"
+            data = io.open(path, "rb").read()
+            self[name] = dict(
+                filename=os.path.basename(path),
+                headers={"Content-Type": content_type},
+                data=data
+            )
+        return self
+
+    def encode(self):
+        body = b""
+        boundary = binascii.hexlify(os.urandom(16))
+
+        for field, _v in self.items():
+            value = dict(_v)
+            data = value.pop("data")
+            headers = value.pop("headers")
+            field = field.encode()
+
+            body += b'--' + boundary + b'\r\n'
+            body += b'Content-Disposition: form-data; name="%s"; ' % field
+            body += '; '.join(
+                ['%s="%s"' % (n, v) for n, v in value.items()]
+            ).encode() + b'\r\n'
+            body += '\r\n'.join(
+                ['%s: %s' % (n, v) for n, v in headers.items()]
+            ).encode() + b'\r\n'
+            body += b'\r\n' + data + b'\r\n'
+
+        body += b'--' + boundary + b'--\r\n'
+        return body, f"multipart/form-data; boundary={boundary.decode()}"
+
+    @staticmethod
+    def blind_encode(**fields):
+        boundary = binascii.hexlify(os.urandom(16)).decode('ascii')
+        body = (
+            "".join(
+                '--%s\r\n'
+                'Content-Disposition: form-data; name="%s"\r\n'
+                'Content-Type: application/octet-stream\r\n'
+                '\r\n'
+                '%s\r\n' % (
+                    boundary, field, value
+                ) for field, value in fields.items()
+            ) + "--%s--\r\n" % boundary
+        )
+        return body, "multipart/form-data; boundary=%s" % boundary
 
 
 def connect(peer):
@@ -100,11 +179,12 @@ class EndPoint(object):
     def build_req(method="GET", *args, **kwargs):
         method = method.upper()
         headers = kwargs.pop("headers", {
-            "Content-type": "application/json",
+            "Content-Type": "application/json",
             "User-agent": "Python/usrv"
         })
-        to_urlencode = kwargs.pop("urlencode", None)
-        to_jsonify = kwargs.pop("jsonify", None)
+        to_multipart = kwargs.pop("_multipart", None)
+        to_urlencode = kwargs.pop("_urlencode", None)
+        to_jsonify = kwargs.pop("_jsonify", None)
 
         # construct base url
         chain = "/".join([a for a in args if a])
@@ -127,23 +207,28 @@ class EndPoint(object):
             req = Request(url, None, headers)
         else:
             # if data provided other than kwargs use kwargs to build url
-            if to_urlencode is not None or to_jsonify is not None:
-                if len(kwargs):
-                    url += "?" + urlencode(kwargs)
-            # set content-type as json by default
-            headers["Content-type"] = "application/json"
+            if any([to_urlencode, to_jsonify, to_multipart]) and len(kwargs):
+                url += "?" + urlencode(kwargs)
             # if explicitly asked to send data as urlencoded
             if to_urlencode is not None:
-                data = urlencode(to_urlencode)
-                headers["Content-type"] = "application/x-www-form-urlencoded"
+                headers["Content-Type"] = "application/x-www-form-urlencoded"
+                data = urlencode(to_urlencode).encode('utf-8')
             # if explicitly asked to send data as json
             elif to_jsonify is not None:
-                data = json.dumps(to_jsonify)
+                headers["Content-Type"] = "application/json"
+                data = json.dumps(to_jsonify).encode('utf-8')
+            elif to_multipart is not None:
+                if isinstance(to_multipart, FormData):
+                    data, headers["Content-Type"] = to_multipart.encode()
+                else:
+                    data, headers["Content-Type"] = FormData.blind_encode(
+                        **to_multipart
+                    ).encode('utf-8')
             # if nothing provided send void json as data
             else:
-                data = json.dumps(kwargs)
-            req = Request(url, data.encode('utf-8'), headers)
-
+                headers["Content-Type"] = "application/json"
+                data = json.dumps(kwargs).encode('utf-8')
+            req = Request(url, data, headers)
         # tweak request
         req.get_method = lambda: method
         return req

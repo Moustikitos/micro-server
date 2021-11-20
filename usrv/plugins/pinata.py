@@ -3,6 +3,7 @@
 
 from usrv import req
 
+
 HEADERS = {
     "Content-Type": "application/json",
     "Accept": "application/json",
@@ -40,3 +41,9 @@ DELETE = req.EndPoint(
         "DELETE", *a, **pinata_filter(**kw)
     )
 )
+
+
+def pinFile(pathfile):
+    data = req.FormData()
+    data.append_file("file", pathfile)
+    return POST.pinning.pinFileToIPFS(_multipart=data)
