@@ -230,4 +230,4 @@ resp = req.GET.api.delegates(orderBy="username:asc", peer="https://dexplorer.ark
 {'IpfsHash': 'QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP', 'PinSize': 25293, 'Timestamp': '2021-11-20T21:13:36.853Z', 'isDuplicate': True, 'status': 200}
 ```
 
-Check pinned file here : [`arky.png`](ipfs://QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP)
+Check pinned file here : `ipfs://QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP`
