@@ -261,7 +261,7 @@ Check server location : [`Mountain View`](https://www.latlong.net/c/?lat=37.4056
 ```python
 >>> from usrv import pinata
 >>> pinata.link("eyJhb[...]rI7QY")  # JWT token
->>> pinata.pinFile(r"C:\Users\Toons\Pictures\arky.png")
+>>> pinata.pinFile(r"C:\Users\Toons\Pictures\arky.png", name="arky delegate logo")
 {'IpfsHash': 'QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP', 'PinSize': 25293, 'Timestamp': '2021-11-20T21:13:36.853Z', 'status': 200}
 ```
 
