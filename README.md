@@ -208,11 +208,11 @@ If `_jsonify`, `_urlencode` or `_multipart` are used in the requests call, all o
 
 #### `_jsonify`
 
-Keyword used so body content is sent as json for the request.
+Keyword used so body content is sent as json.
 
 #### `_urlencode`
 
-Keyword used so body content is sent as urlencoded string for the request.
+Keyword used so body content is sent as urlencoded string.
 
 #### `_multipart`
 
@@ -234,7 +234,7 @@ multipart/form-data; boundary=b8f8d72ec06269a8f4dc94052b9bd72f
 
 #### `peer`
 
-Keyword used to define a custom peer for the request.
+Keyword used to define a custom peer in the request.
 
 ```python
 # https://dexplorer.ark.io:8443/api/delegates?orderBy=username:asc
@@ -243,7 +243,7 @@ resp = req.GET.api.delegates(orderBy="username:asc", peer="https://dexplorer.ark
 
 #### `headers`
 
-Keyword used to define custom headers for the request.
+Keyword used to define custom headers in the request.
 
 # Plugins
 
@@ -255,6 +255,8 @@ Keyword used to define custom headers for the request.
 >>> ipinfo.info("8.8.8.8")   
 {'ip': '8.8.8.8', 'hostname': 'dns.google', 'anycast': True, 'city': 'Mountain View', 'region': 'California', 'country': 'US', 'loc': '37.4056,-122.0775', 'org': 'AS15169 Google LLC', 'postal': '94043', 'timezone': 'America/Los_Angeles', 'status': 200}
 ```
+
+Check server location : [`Mountain View`](https://www.latlong.net/c/?lat=37.4056&long=-122.0775)
 
 ## [Pinata](https://www.pinata.cloud/)
 
