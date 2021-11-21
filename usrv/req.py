@@ -14,8 +14,6 @@ import logging
 import binascii
 import mimetypes
 
-from collections import UserDict
-
 if sys.version_info[0] >= 3:
     from urllib.request import Request, OpenerDirector, HTTPHandler
     from urllib.request import HTTPSHandler, BaseHandler
@@ -33,20 +31,20 @@ CTX.check_hostname = False
 CTX.verify_mode = ssl.CERT_NONE
 
 
-class FormData(UserDict):
+class FormData(dict):
 
     def __setitem__(self, item, value):
         return self.append_value(item, value)
 
     def append_json(self, name, value={}, **kwval):
-        UserDict.__setitem__(self, name, {
+        dict.__setitem__(self, name, {
             "data": json.dumps(dict(value, **kwval), sort_keys=True).encode(),
             "headers": {"Content-Type": "application/json"}
         })
         return self
 
     def append_value(self, name, value, **headers):
-        UserDict.__setitem__(self, name, {
+        dict.__setitem__(self, name, {
             "data": value if isinstance(value, bytes) else (
                 "%s" % value
             ).encode(),
@@ -56,12 +54,15 @@ class FormData(UserDict):
 
     def append_file(self, name, path):
         if os.path.isfile(path):
-            content_type = \
-                mimetypes.guess_type(path)[0] or "application/octet-stream"
             data = io.open(path, "rb").read()
-            UserDict.__setitem__(self, name, {
+            dict.__setitem__(self, name, {
                 "filename": os.path.basename(path),
-                "headers": {"Content-Type": content_type},
+                "headers": {
+                    "Content-Type": (
+                        mimetypes.guess_type(path)[0] or
+                        "application/octet-stream"
+                    )
+                },
                 "data": data
             })
         else:
@@ -98,7 +99,7 @@ class FormData(UserDict):
             "".join(
                 '--%s\r\n'
                 'Content-Disposition: form-data; name="%s"\r\n'
-                'Content-Type: application/octet-stream\r\n'
+                'Content-Type: text/plain; charset=UTF-8\r\n'
                 '\r\n'
                 '%s\r\n' % (
                     boundary, field, value
@@ -106,14 +107,6 @@ class FormData(UserDict):
             ) + "--%s--\r\n" % boundary
         )
         return body, "multipart/form-data; boundary=%s" % boundary
-
-
-def connect(peer):
-    return EndPoint.connect(peer)
-
-
-def disconnect():
-    return EndPoint.disconnect()
 
 
 class EndPoint(object):
@@ -219,14 +212,19 @@ class EndPoint(object):
             elif to_jsonify is not None:
                 headers["Content-Type"] = "application/json"
                 data = json.dumps(to_jsonify).encode('utf-8')
+            # if explicitly asked to send data multipart/form-data
             elif to_multipart is not None:
                 if isinstance(to_multipart, FormData):
                     data, headers["Content-Type"] = to_multipart.encode()
-                else:
+                elif isinstance(to_multipart, dict):
                     data, headers["Content-Type"] = FormData.blind_encode(
                         **to_multipart
                     ).encode('utf-8')
-            # if nothing provided send void json as data
+                else:
+                    raise Exception(
+                        "can not initialize multipart with %s" % to_multipart
+                    )
+            # if nothing provided send jsonified keywords as data
             else:
                 headers["Content-Type"] = "application/json"
                 data = json.dumps(kwargs).encode('utf-8')
@@ -264,6 +262,14 @@ class EndPoint(object):
     def chain(self):
         return (self.parent.chain() + [self.elem]) if self.parent is not None \
                else [""]
+
+
+def connect(peer):
+    return EndPoint.connect(peer)
+
+
+def disconnect():
+    return EndPoint.disconnect()
 
 
 CONNECT = EndPoint(method=lambda *a, **kw: EndPoint._call("CONNECT", *a, **kw))
