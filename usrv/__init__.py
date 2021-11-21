@@ -3,27 +3,21 @@
 
 import io
 import os
-import sys
 import json
 import logging
-
-# save python familly
-PY3 = True if sys.version_info[0] >= 3 else False
-input = input if PY3 else raw_input
 
 # set basic logging
 logging.basicConfig()
 # configuration pathes
 ROOT = os.path.abspath(os.path.dirname(__file__))
 JSON = os.path.abspath(os.path.join(ROOT, ".json"))
-
 __path__.append(os.path.abspath(os.path.join(ROOT, "plugins")))
 
 
-def loadJson(name, folder=None, reload=False):
+def loadJson(name, folder=None):
     filename = os.path.join(JSON if not folder else folder, name)
     if os.path.exists(filename):
-        with io.open(filename) as in_:
+        with io.open(filename, "r", encoding="utf-8") as in_:
             data = json.load(in_)
     else:
         data = {}
@@ -44,7 +38,7 @@ def dumpJson(data, name, folder=None):
         os.makedirs(os.path.dirname(filename))
     except OSError:
         pass
-    with io.open(filename, "w" if PY3 else "wb") as out:
+    with io.open(filename, "w", encoding="utf-8") as out:
         json.dump(data, out, indent=4)
     # hack to avoid "OSError: [Errno 24] Too many open files"
     # with pypy
