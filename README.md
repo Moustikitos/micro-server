@@ -204,8 +204,6 @@ If no specific keyword is used, keyword arguments are sent as json string in the
 
 ### Specific keywords
 
-If `_jsonify`, `_urlencode` or `_multipart` are used in the requests call, all others keyword arguments will be converted into an url querry string.
-
 #### `_jsonify`
 
 Keyword used so body content is sent as json.
