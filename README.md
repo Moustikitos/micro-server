@@ -198,11 +198,43 @@ resp = req.GET.api.delegates(orderBy="username:asc")
 
 ### Other HTTP calls
 
-Http calls `CONNECT`, `POST`, `PATCH`, `PUT` and `DELETE` allow data to be sent. It can be done as json-string or url-encoded-string.
+Http calls `CONNECT`, `POST`, `PATCH`, `PUT` and `DELETE` allow data to be sent. Data can be sent as json-string, url-encoded-string or multipart/form-data using specific peer and headers.
+
+If no specific keyword is used, keyword arguments are sent as json string in the request body.
 
 ### Specific keywords
 
+If `_jsonify`, `_urlencode` or `_multipart` are used in the requests call, all others keyword arguments will be converted into an url querry string.
+
+#### `_jsonify`
+
+Keyword used so body content is sent as json for the request.
+
+#### `_urlencode`
+
+Keyword used so body content is sent as urlencoded string for the request.
+
+#### `_multipart`
+
+Keyword used so body content is sent as multipart/form-data format specified in [RFC#7578](https://datatracker.ietf.org/doc/html/rfc7578). Value provided to `_multipart` keyword can be either a Python `dict` object or a `usrv.req.FormDict` class. `dict` are blindly encoded by `req.FormData.blind_encode` static method.
+
+```python
+>>> data, header = req.FormData.blind_encode(key="value") 
+>>> print(data)
+--b8f8d72ec06269a8f4dc94052b9bd72f
+Content-Disposition: form-data; name="key"
+Content-Type: text/plain; charset=UTF-8
+
+value
+--b8f8d72ec06269a8f4dc94052b9bd72f--
+
+>>> print(header)
+multipart/form-data; boundary=b8f8d72ec06269a8f4dc94052b9bd72f
+```
+
 #### `peer`
+
+Keyword used to define a custom peer for the request.
 
 ```python
 # https://dexplorer.ark.io:8443/api/delegates?orderBy=username:asc
@@ -210,23 +242,26 @@ resp = req.GET.api.delegates(orderBy="username:asc", peer="https://dexplorer.ark
 ```
 
 #### `headers`
-#### `_jsonify`
-#### `_urlencode`
-#### `_multipart`
 
+Keyword used to define custom headers for the request.
 
-# plugins
+# Plugins
 
 ## IpInfo
-## Bittrex
-## Notify
+
+```python
+>>> from usrv import ipinfo
+>>> ipinfo.link("ba4[...]d1a")  # Ipinfo API token
+>>> ipinfo.info("8.8.8.8")   
+{'ip': '8.8.8.8', 'hostname': 'dns.google', 'anycast': True, 'city': 'Mountain View', 'region': 'California', 'country': 'US', 'loc': '37.4056,-122.0775', 'org': 'AS15169 Google LLC', 'postal': '94043', 'timezone': 'America/Los_Angeles', 'status': 200}
+```
 
 ## [Pinata](https://www.pinata.cloud/)
 
 ```python
 >>> from usrv import pinata
 >>> pinata.link("eyJhb[...]rI7QY")  # JWT token
->>> pinata.pinFile(r"c:\Users\Toons\Pictures\arky.png")
+>>> pinata.pinFile(r"C:\Users\Toons\Pictures\arky.png")
 {'IpfsHash': 'QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP', 'PinSize': 25293, 'Timestamp': '2021-11-20T21:13:36.853Z', 'status': 200}
 ```
 
