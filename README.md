@@ -245,7 +245,7 @@ Keyword used to define custom headers in the request.
 
 # Plugins
 
-## IpInfo
+## [IpInfo](https://www.ipinfo.io)
 
 ```python
 >>> from usrv import ipinfo
