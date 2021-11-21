@@ -38,7 +38,7 @@ class FormData(UserDict):
     def __setitem__(self, item, value):
         return self.append_value(item, value)
 
-    def append_json(self, name, value, **kwval):
+    def append_json(self, name, value={}, **kwval):
         UserDict.__setitem__(self, name, {
             "data": json.dumps(dict(value, **kwval), sort_keys=True).encode(),
             "headers": {"Content-Type": "application/json"}
@@ -64,6 +64,8 @@ class FormData(UserDict):
                 "headers": {"Content-Type": content_type},
                 "data": data
             })
+        else:
+            raise IOError("file %s not found" % path)
         return self
 
     def encode(self):
