@@ -43,7 +43,11 @@ DELETE = req.EndPoint(
 )
 
 
-def pinFile(pathfile):
+def pinFile(pathfile, options={}, **metadata):
     data = req.FormData()
     data.append_file("file", pathfile)
+    if options:
+        data.append_json("pinataOptions", options)
+    if metadata:
+        data.append_json("pinataMetadata", metadata)
     return POST.pinning.pinFileToIPFS(_multipart=data)
