@@ -32,6 +32,10 @@ CTX.verify_mode = ssl.CERT_NONE
 
 
 class FormData(dict):
+    """
+    ~ [RFC#7578](https://datatracker.ietf.org/doc/html/rfc7578)
+    Implementation of multipart form-data encoder.
+    """
 
     def __setitem__(self, item, value):
         return self.append_value(item, value)
@@ -173,6 +177,7 @@ class EndPoint(object):
     @staticmethod
     def build_req(method="GET", *args, **kwargs):
         method = method.upper()
+        peer = kwargs.pop("peer", False) or EndPoint.peer
         headers = kwargs.pop("headers", {
             "Content-Type": "application/json",
             "User-agent": "Python/usrv"
@@ -181,19 +186,13 @@ class EndPoint(object):
         to_urlencode = kwargs.pop("_urlencode", None)
         to_jsonify = kwargs.pop("_jsonify", None)
 
-        # construct base url
-        chain = "/".join([a for a in args if a])
-        if not chain.startswith("/"):
-            chain = "/" + chain
-        else:
-            chain = chain.replace("//", "/")
-        peer = kwargs.pop("peer", False) or EndPoint.peer
-        if peer in [False, None]:
+        if not peer:
             if not EndPoint.quiet:
                 raise Exception("No peer connection available")
             else:
                 return False
 
+        chain = ("/" + "/".join([a for a in args if a])).replace("//", "/")
         url = peer + chain
 
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
@@ -202,28 +201,31 @@ class EndPoint(object):
             req = Request(url, None, headers)
         else:
             # if data provided other than kwargs use kwargs to build url
-            if any([to_urlencode, to_jsonify, to_multipart]) and len(kwargs):
-                url += "?" + urlencode(kwargs)
-            # if explicitly asked to send data as urlencoded
-            if to_urlencode is not None:
-                headers["Content-Type"] = "application/x-www-form-urlencoded"
-                data = urlencode(to_urlencode).encode('utf-8')
-            # if explicitly asked to send data as json
-            elif to_jsonify is not None:
-                headers["Content-Type"] = "application/json"
-                data = json.dumps(to_jsonify).encode('utf-8')
-            # if explicitly asked to send data multipart/form-data
-            elif to_multipart is not None:
-                if isinstance(to_multipart, FormData):
-                    data, headers["Content-Type"] = to_multipart.encode()
-                elif isinstance(to_multipart, dict):
-                    data, headers["Content-Type"] = FormData.blind_encode(
-                        **to_multipart
-                    ).encode('utf-8')
-                else:
-                    raise Exception(
-                        "can not initialize multipart with %s" % to_multipart
-                    )
+            if any([to_urlencode, to_jsonify, to_multipart]):
+                if len(kwargs):
+                    url += "?" + urlencode(kwargs)
+                # if explicitly asked to send data multipart/form-data
+                if to_multipart is not None:
+                    if isinstance(to_multipart, FormData):
+                        data, headers["Content-Type"] = to_multipart.encode()
+                    elif isinstance(to_multipart, dict):
+                        data, headers["Content-Type"] = FormData.blind_encode(
+                            **to_multipart
+                        ).encode('utf-8')
+                    else:
+                        raise Exception(
+                            "can not initialize multipart with %s" %
+                            to_multipart
+                        )
+                # if explicitly asked to send data as urlencoded
+                elif to_urlencode is not None:
+                    headers["Content-Type"] = \
+                        "application/x-www-form-urlencoded"
+                    data = urlencode(to_urlencode).encode('utf-8')
+                # if explicitly asked to send data as json
+                elif to_jsonify is not None:
+                    headers["Content-Type"] = "application/json"
+                    data = json.dumps(to_jsonify).encode('utf-8')
             # if nothing provided send jsonified keywords as data
             else:
                 headers["Content-Type"] = "application/json"
