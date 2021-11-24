@@ -266,3 +266,34 @@ Check server location : [`Mountain View`](https://www.latlong.net/c/?lat=37.4056
 ```
 
 Check pinned file here : `ipfs://QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP`
+
+## [nft.Storage](https://nft.storage)
+
+```python
+>>> from usrv import nftstorage as nst
+>>> nst.link("eyJhb[...]VOmq8")  # JWT token
+>>> nst.store(r"C:\Users\Toons\Pictures\arky.png")
+{'ok': True, 'value': {'cid': 'bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky', 'created': '2021-11-23T05:33:42.789+00:00', 'type': 'directory', 'scope': 'micro-io', 'files': [{'name': 'arky.png', 'type': 'image/png'}], 'size': 25337, 'pin': {'cid': 'bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky', 'created': '2021-11-23T05:33:42.789+00:00', 'size': 25337, 'status': 'queued'}, 'deals': []}, 'status': 200}
+```
+
+Check pinned file here : `ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky`
+
+[ERC 1155](https://eips.ethereum.org/EIPS/eip-1155) token metadata storage:
+
+```python
+>>> erc1155 = {
+...   'name': 'arky logo',
+...   'image': r"C:\Users\Toons\Pictures\arky.png",
+...   'description': 'Python supporting ARK',
+...   'properties': {
+...     'name': 'arky',
+...     'size': '272x272',
+...     'Licence':
+...     'MIT Licence'
+...   }
+... }
+>>> nst.ERC1155(erc1155)
+{'ok': True, 'value': {'ipnft': 'bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei', 'url': 'ipfs://bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei/metadata.json', 'data': {'description': 'Python supporting ARK', 'image': 'ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky/arky.png', 'name': 'arky logo', 'properties': {'Licence': 'MIT Licence', 'name': 'arky', 'size': '272x272'}}}, 'status': 200}
+```
+
+Check erc 1155 metadata here : `ipfs://bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei/metadata.json`
