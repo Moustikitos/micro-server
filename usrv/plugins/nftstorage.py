@@ -47,12 +47,12 @@ DELETE = req.EndPoint(
 )
 
 
-def ERC1155_filter(data, root=None):
+def _ERC1155_filter(data, root=None):
     result = {}
     for key, value in list(data.items()):
         root_ = key if root is None else "%s.%s" % (root, key)
         if isinstance(value, Mapping):
-            result.update(ERC1155_filter(value, root_))
+            result.update(_ERC1155_filter(value, root_))
         elif isinstance(value, str):
             abspath = os.path.abspath(value)
             if os.path.isfile(abspath):
@@ -61,15 +61,15 @@ def ERC1155_filter(data, root=None):
     return result
 
 
-def store(pathfile):
+def upload(pathfile):
     data = req.FormData()
     data.append_file("file", pathfile)
     return POST.upload(_multipart=data)
 
 
-def ERC1155(schema):
+def ERC1155_store(schema):
     data = req.FormData()
-    filtered = ERC1155_filter(schema)
+    filtered = _ERC1155_filter(schema)
     data.append_json("meta", schema)
     for key, filepath in filtered.items():
         data.append_file(key, filepath)

@@ -46,6 +46,7 @@ DELETE = req.EndPoint(
 def pinFile(pathfile, options={}, **metadata):
     data = req.FormData()
     data.append_file("file", pathfile)
+    options["cidVersion"] = options.get("cidVersion", "1")
     if options:
         data.append_json("pinataOptions", options)
     if metadata:

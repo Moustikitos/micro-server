@@ -262,17 +262,17 @@ Check server location : [`Mountain View`](https://www.latlong.net/c/?lat=37.4056
 >>> from usrv import pinata
 >>> pinata.link("eyJhb[...]rI7QY")  # JWT token
 >>> pinata.pinFile(r"C:\Users\Toons\Pictures\arky.png", name="arky delegate logo")
-{'IpfsHash': 'QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP', 'PinSize': 25293, 'Timestamp': '2021-11-20T21:13:36.853Z', 'status': 200}
+{'IpfsHash': 'bafkreigfxalrf52xm5ecn4lorfhiocw4x5cxpktnkiq3atq6jp2elktobq', 'PinSize': 25279, 'Timestamp': '2021-11-24T21:57:23.983Z', 'status': 200}
 ```
 
-Check pinned file here : `ipfs://QmT7V4pYNSopJHxKvYDxYrmrtCizv9PR5FJ5FkryVfiakP`
+Check pinned file here : `ipfs://bafkreigfxalrf52xm5ecn4lorfhiocw4x5cxpktnkiq3atq6jp2elktobq`
 
 ## [nft.Storage](https://nft.storage)
 
 ```python
 >>> from usrv import nftstorage as nst
 >>> nst.link("eyJhb[...]VOmq8")  # JWT token
->>> nst.store(r"C:\Users\Toons\Pictures\arky.png")
+>>> nst.upload(r"C:\Users\Toons\Pictures\arky.png")
 {'ok': True, 'value': {'cid': 'bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky', 'created': '2021-11-23T05:33:42.789+00:00', 'type': 'directory', 'scope': 'micro-io', 'files': [{'name': 'arky.png', 'type': 'image/png'}], 'size': 25337, 'pin': {'cid': 'bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky', 'created': '2021-11-23T05:33:42.789+00:00', 'size': 25337, 'status': 'queued'}, 'deals': []}, 'status': 200}
 ```
 
@@ -292,7 +292,7 @@ Check pinned file here : `ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqce
 ...     'MIT Licence'
 ...   }
 ... }
->>> nst.ERC1155(erc1155)
+>>> nst.ERC1155_store(erc1155)
 {'ok': True, 'value': {'ipnft': 'bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei', 'url': 'ipfs://bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei/metadata.json', 'data': {'description': 'Python supporting ARK', 'image': 'ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky/arky.png', 'name': 'arky logo', 'properties': {'Licence': 'MIT Licence', 'name': 'arky', 'size': '272x272'}}}, 'status': 200}
 ```
 
