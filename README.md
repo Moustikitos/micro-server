@@ -292,7 +292,7 @@ Check pinned file here : `ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqce
 ...     'MIT Licence'
 ...   }
 ... }
->>> nst.ERC1155_store(erc1155)
+>>> nst.store_ERC1155(erc1155)
 {'ok': True, 'value': {'ipnft': 'bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei', 'url': 'ipfs://bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei/metadata.json', 'data': {'description': 'Python supporting ARK', 'image': 'ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky/arky.png', 'name': 'arky logo', 'properties': {'Licence': 'MIT Licence', 'name': 'arky', 'size': '272x272'}}}, 'status': 200}
 ```
 

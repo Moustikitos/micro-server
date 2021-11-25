@@ -67,7 +67,7 @@ def upload(pathfile):
     return POST.upload(_multipart=data)
 
 
-def ERC1155_store(schema):
+def store_ERC1155(schema):
     data = req.FormData()
     filtered = _ERC1155_filter(schema)
     data.append_json("meta", schema)
