@@ -61,9 +61,10 @@ def _ERC1155_filter(data, root=None):
     return result
 
 
-def upload(pathfile):
+def upload(*pathfiles):
     data = req.FormData()
-    data.append_file("file", pathfile)
+    for pathfile in pathfiles:
+        data.append_file("file", pathfile)
     return POST.upload(_multipart=data)
 
 

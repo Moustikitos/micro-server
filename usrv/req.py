@@ -31,24 +31,25 @@ CTX.check_hostname = False
 CTX.verify_mode = ssl.CERT_NONE
 
 
-class FormData(dict):
+class FormData(list):
     """
     ~ [RFC#7578](https://datatracker.ietf.org/doc/html/rfc7578)
     Implementation of multipart form-data encoder.
     """
 
-    def __setitem__(self, item, value):
-        return self.append_value(item, value)
-
     def append_json(self, name, value={}, **kwval):
-        dict.__setitem__(self, name, {
-            "data": json.dumps(dict(value, **kwval), sort_keys=True).encode(),
+        list.append(self, {
+            "name": name,
+            "data": json.dumps(
+                dict(value, **kwval), sort_keys=True, separators=(",", ":")
+            ).encode(),
             "headers": {"Content-Type": "application/json"}
         })
         return self
 
     def append_value(self, name, value, **headers):
-        dict.__setitem__(self, name, {
+        list.append(self, {
+            "name": name,
             "data": value if isinstance(value, bytes) else (
                 "%s" % value
             ).encode(),
@@ -58,8 +59,8 @@ class FormData(dict):
 
     def append_file(self, name, path):
         if os.path.isfile(path):
-            data = io.open(path, "rb").read()
-            dict.__setitem__(self, name, {
+            list.append(self, {
+                "name": name,
                 "filename": os.path.basename(path),
                 "headers": {
                     "Content-Type": (
@@ -67,7 +68,7 @@ class FormData(dict):
                         "application/octet-stream"
                     )
                 },
-                "data": data
+                "data": io.open(path, "rb").read()
             })
         else:
             raise IOError("file %s not found" % path)
@@ -77,11 +78,10 @@ class FormData(dict):
         body = b""
         boundary = binascii.hexlify(os.urandom(16))
 
-        for field, _v in self.items():
-            value = dict(_v)
+        for value in [dict(v) for v in self]:
+            field = value.pop("name").encode()
             data = value.pop("data")
             headers = value.pop("headers")
-            field = field.encode()
 
             body += b'--' + boundary + b'\r\n'
             body += b'Content-Disposition: form-data; name="%s"; ' % field
