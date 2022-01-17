@@ -337,7 +337,7 @@ def _context_call(path, method, url, header, data):
     )
 
 
-def bind(path, methods=["GET"]):
+def bind(path, methods=["GET"], app=MicroJsonApp):
     """
     Link a python function to an http request. This definition is meant to be
     used as a decorator. It allows server context execution aquirement via
@@ -438,9 +438,9 @@ def bind(path, methods=["GET"]):
 
         # register wrapper in MicroJsonApp.ENDPOINTS
         for method in methods:
-            if method not in MicroJsonApp.ENDPOINTS:
-                MicroJsonApp.ENDPOINTS[method] = MatchDict()
-            MicroJsonApp.ENDPOINTS[method][path] = container
+            if method not in app.ENDPOINTS:
+                app.ENDPOINTS[method] = MatchDict()
+            app.ENDPOINTS[method][path] = container
             LOGGER.debug(
                 "%s bound to 'HTTP %s %s' request",
                 function.__name__, method, path
@@ -449,11 +449,11 @@ def bind(path, methods=["GET"]):
     return decorator
 
 
-def unbind(path, methods=["GET"]):
+def unbind(path, methods=["GET"], app=MicroJsonApp):
     for method in methods:
-        if method in MicroJsonApp.ENDPOINTS:
-            MicroJsonApp.ENDPOINTS[method]._matcher.pop(path, False)
-            container = MicroJsonApp.ENDPOINTS[method].pop(path, False)
+        if method in app.ENDPOINTS:
+            app.ENDPOINTS[method]._matcher.pop(path, False)
+            container = app.ENDPOINTS[method].pop(path, False)
             LOGGER.debug(
                 "%s unbound from 'HTTP %s %s' request",
                 container.func.__name__, method, path
