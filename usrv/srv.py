@@ -31,7 +31,6 @@ $ gunicorn 'srv:MicroJsonApp()' --bind=0.0.0.0:5000
 
 import os
 import re
-import sys
 import ssl
 import json
 import inspect
@@ -39,46 +38,27 @@ import logging
 import traceback
 import importlib
 
+from usrv import uroot
 from collections import OrderedDict, namedtuple
 from optparse import OptionParser
 
-if sys.version_info[0] >= 3:
-    from http.server import HTTPServer, BaseHTTPRequestHandler
-    import urllib.parse as urlparse
-
-    # create a namedtuple with fieldnames of namedtuple returned by
-    # `inspgetfullargspec` plus 'keywords'
-    FixArgSpec = namedtuple(
-        "FixArgSpec", (
-            'args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
-            'kwonlydefaults', 'annotations', "keywords"
-        )
-    )
-
-    def _get_header(http_msg, key, alt=False):
-        return http_msg.get(key, alt)
-
-    def _get_arg_spec(function):
-        insp = inspect.getfullargspec(function)
-        _insp = FixArgSpec(**dict(insp._asdict(), keywords=insp.varkw))
-        return _insp
-
-    quote = urlparse.quote
-
-else:
-    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-    from urllib import quote
-    import urlparse
-
-    def _get_header(http_msg, key, alt=False):
-        http_msg.getheader(key, alt)
-
-    json.JSONDecodeError = ValueError
-    _get_arg_spec = inspect.getargspec
-
+from http.server import HTTPServer
+import urllib.parse as urlparse
 
 LOGGER = logging.getLogger("usrv.srv")
 logging.basicConfig()
+FixArgSpec = namedtuple(
+    "FixArgSpec", (
+        'args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
+        'kwonlydefaults', 'annotations', "keywords"
+    )
+)
+
+
+def _get_arg_spec(function):
+    insp = inspect.getfullargspec(function)
+    _insp = FixArgSpec(**dict(insp._asdict(), keywords=insp.varkw))
+    return _insp
 
 
 class MatchDict(dict):
@@ -153,9 +133,14 @@ class Capsule:
         return self.func(*args, **kwargs)
 
 
-class MicroJsonApp:
+class uJsonHandler(uroot.uRawHandler):
 
-    ENDPOINTS = {}
+    @staticmethod
+    def format_response(resp):
+        return json.dumps(resp), "application/json"
+
+
+class uJsonApp:
 
     def __init__(self, host="127.0.0.1", port=5000, loglevel=20):
         LOGGER.setLevel(loglevel)
@@ -163,66 +148,7 @@ class MicroJsonApp:
         self.port = port
 
     def __call__(self, environ, start_response):
-        """
-        Web Server Gateway Interface for deployment.
-        https://www.python.org/dev/peps/pep-3333
-        """
-        method = environ["REQUEST_METHOD"]
-        # method bellow are bodyless so http_input == {}
-        if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
-            http_input = "{}"
-        else:
-            http_input = environ["wsgi.input"].read()
-
-        data = _context_call(
-            environ.get("PATH_INFO", "/"), method,
-            MicroJsonApp._rebuild_url(environ),
-            dict(
-                [k.replace("HTTP_", "").replace("_", "-").lower(), v]
-                for k, v in environ.items() if k.startswith("HTTP_")
-            ),
-            http_input.decode("latin-1") if isinstance(http_input, bytes)
-            else http_input
-        )
-
-        statuscode = "%d" % data["status"]
-        write = start_response(
-            statuscode.decode("latin-1") if isinstance(statuscode, bytes)
-            else statuscode,
-            (["Content-type", "application/json"],)
-        )
-
-        data = json.dumps(data)
-        write(data.encode("latin-1") if not isinstance(data, bytes) else data)
-        return b""
-
-    @staticmethod
-    def _rebuild_url(env):
-        """
-        Rebuild full url from WSGI environement according to PEP #3333.
-        https://www.python.org/dev/peps/pep-3333
-        """
-        url = env['wsgi.url_scheme'] + '://'
-
-        if env.get('HTTP_HOST'):
-            url += env['HTTP_HOST']
-        else:
-            url += env['SERVER_NAME']
-
-            if env['wsgi.url_scheme'] == 'https':
-                if env['SERVER_PORT'] != '443':
-                    url += ':' + env['SERVER_PORT']
-            else:
-                if env['SERVER_PORT'] != '80':
-                    url += ':' + env['SERVER_PORT']
-
-        url += quote(env.get('SCRIPT_NAME', ''))
-        url += quote(env.get('PATH_INFO', ''))
-
-        if env.get('QUERY_STRING'):
-            url += '?' + env['QUERY_STRING']
-
-        return url
+        return uroot.wsgi_call(uJsonHandler, environ, start_response)
 
     def wrap(self):
         if not hasattr(self, "httpd"):
@@ -254,7 +180,7 @@ class MicroJsonApp:
         """
         For testing purpose only.
         """
-        self.httpd = HTTPServer((self.host, self.port), MicroJsonHandler)
+        self.httpd = HTTPServer((self.host, self.port), uJsonHandler)
         if ssl:
             self.wrap()
             LOGGER.info("ssl socket wrapping done")
@@ -268,76 +194,7 @@ class MicroJsonApp:
             LOGGER.info("server stopped")
 
 
-class MicroJsonHandler(BaseHTTPRequestHandler):
-
-    def __getattr__(self, attr):
-        if attr.startswith("do_"):
-            return lambda o=self: \
-                MicroJsonHandler.do_(o, attr.replace("do_", ""))
-        return BaseHTTPRequestHandler.__getattribute__(self, attr)
-
-    @staticmethod
-    def do_(self, method="GET"):
-        # method bellow are bodyless so http_input == {}
-        if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
-            http_input = "{}"
-        else:
-            length = _get_header(self.headers, 'content-length')
-            http_input = self.rfile.read(
-                int(length) if length is not None else 0
-            )
-        # if server.socket wrapped then url scheme is https
-        url = \
-            "https://%s:%s%s" if isinstance(self.server.socket, ssl.SSLSocket)\
-            else "http://%s:%s%s"
-
-        data = _context_call(
-            self.path.split("?")[0], method,
-            url % (self.server.server_address + (self.path, )),
-            dict([k.lower(), v] for k, v in dict(self.headers).items()),
-            http_input.decode("latin-1") if isinstance(http_input, bytes)
-            else http_input
-        )
-
-        return self.close_request(data["status"], data)
-
-    def close_request(self, value, resp):
-        data = json.dumps(resp)
-        self.send_response(value)
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        self.wfile.write(
-            data if isinstance(data, bytes) else data.encode("latin-1")
-        )
-
-
-def _context_call(path, method, url, header, data):
-    func = MicroJsonApp.ENDPOINTS.get(method, {}).get(path, None)
-    if func is None:
-        LOGGER.error("no endpoind found behind %s", url)
-        return {"status": 400, "result": "not found"}
-    else:
-        try:
-            result = func(method, url, header, json.loads(data))
-        except json.JSONDecodeError as error:
-            LOGGER.error("%r\n%s", error, traceback.format_exc())
-            status = 406
-            result = "data is not a valid json string"
-        except Exception as error:
-            LOGGER.error("%r\n%s", error, traceback.format_exc())
-            status = 500
-            result = "%s raise an error: %r" % (func, error)
-        else:
-            status = 200
-    return dict(
-        {"status": status}, **(
-            result if isinstance(result, dict) else
-            {"result": result}
-        )
-    )
-
-
-def bind(path, methods=["GET"], app=MicroJsonApp):
+def bind(path, methods=["GET"], app=uroot.uRawHandler):
     """
     Link a python function to an http request. This definition is meant to be
     used as a decorator. It allows server context execution aquirement via
@@ -436,6 +293,8 @@ def bind(path, methods=["GET"], app=MicroJsonApp):
             inspect=insp
         )
 
+        if not hasattr(app, "ENDPOINTS"):
+            setattr(app, "ENDPOINTS", {})
         # register wrapper in MicroJsonApp.ENDPOINTS
         for method in methods:
             if method not in app.ENDPOINTS:
@@ -449,7 +308,7 @@ def bind(path, methods=["GET"], app=MicroJsonApp):
     return decorator
 
 
-def unbind(path, methods=["GET"], app=MicroJsonApp):
+def unbind(path, methods=["GET"], app=uroot.uRawHandler):
     for method in methods:
         if method in app.ENDPOINTS:
             app.ENDPOINTS[method]._matcher.pop(path, False)
@@ -485,27 +344,27 @@ def main():
     )
     (options, args) = parser.parse_args()
 
-    app = MicroJsonApp(options.host, options.port, loglevel=options.loglevel)
+    app = uJsonApp(options.host, options.port, loglevel=options.loglevel)
 
     # if no bindings, register few endpoints for testing purpose
     if len(args) == 0 and __name__ == "__main__":
         # url, headers, data and method loosed
-        @bind("/")
+        @bind("/", app=uJsonHandler)
         def test0(a, b=0):
             return a, b
 
         # get url, headers, data and method in args
-        @bind("/vargs")
+        @bind("/vargs", app=uJsonHandler)
         def test1(a, b=1, *args):
             return (a, b) + args
 
         # get url, headers, data and method in kwargs
-        @bind("/kwargs")
+        @bind("/kwargs", app=uJsonHandler)
         def test2(a, b=2, **kwargs):
             return a, b, kwargs
 
         # get url, headers, data and method in kwargs
-        @bind("/vargs_kwargs")
+        @bind("/vargs_kwargs", app=uJsonHandler)
         def test3(a, b=3, *args, **kwargs):
             return (a, b) + args, kwargs
 
@@ -515,11 +374,6 @@ def main():
                 importlib.import_module(name)
             except ImportError as error:
                 LOGGER.error("%r\n%s", error, traceback.format_exc())
-
-    # namespace fix: # __main__.MicroJsonApp.ENDPOINTS has to be updated
-    usrv_srv = sys.modules.get("usrv.srv", None)
-    if usrv_srv is not None:
-        MicroJsonApp.ENDPOINTS.update(usrv_srv.MicroJsonApp.ENDPOINTS)
 
     app.run(ssl=options.ssl)
 

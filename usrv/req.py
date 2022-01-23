@@ -5,112 +5,21 @@
 """
 
 import re
-import os
-import io
 import ssl
-import sys
 import json
 import logging
-import binascii
-import mimetypes
 
-if sys.version_info[0] >= 3:
-    from urllib.request import Request, OpenerDirector, HTTPHandler
-    from urllib.request import HTTPSHandler, BaseHandler
-    from urllib.parse import urlencode
+from usrv import uroot
+from urllib.request import Request, OpenerDirector, HTTPHandler
+from urllib.request import HTTPSHandler, BaseHandler
+from urllib.parse import urlencode
 
-else:
-    from urllib2 import Request, OpenerDirector, HTTPHandler, HTTPSHandler
-    from urllib2 import BaseHandler
-    from urllib import urlencode
 
 LOGGER = logging.getLogger("usrv.req")
 
 CTX = ssl.create_default_context()
 CTX.check_hostname = False
 CTX.verify_mode = ssl.CERT_NONE
-
-
-class FormData(list):
-    """
-    ~ [RFC#7578](https://datatracker.ietf.org/doc/html/rfc7578)
-    Implementation of multipart form-data encoder.
-    """
-
-    def append_json(self, name, value={}, **kwval):
-        list.append(self, {
-            "name": name,
-            "data": json.dumps(
-                dict(value, **kwval), sort_keys=True, separators=(",", ":")
-            ).encode(),
-            "headers": {"Content-Type": "application/json"}
-        })
-        return self
-
-    def append_value(self, name, value, **headers):
-        list.append(self, {
-            "name": name,
-            "data": value if isinstance(value, bytes) else (
-                "%s" % value
-            ).encode(),
-            "headers": dict({"Content-Type": "plain/text"}, **headers)
-        })
-        return self
-
-    def append_file(self, name, path):
-        if os.path.isfile(path):
-            list.append(self, {
-                "name": name,
-                "filename": os.path.basename(path),
-                "headers": {
-                    "Content-Type": (
-                        mimetypes.guess_type(path)[0] or
-                        "application/octet-stream"
-                    )
-                },
-                "data": io.open(path, "rb").read()
-            })
-        else:
-            raise IOError("file %s not found" % path)
-        return self
-
-    def encode(self):
-        body = b""
-        boundary = binascii.hexlify(os.urandom(16))
-
-        for value in [dict(v) for v in self]:
-            field = value.pop("name").encode()
-            data = value.pop("data")
-            headers = value.pop("headers")
-
-            body += b'--' + boundary + b'\r\n'
-            body += b'Content-Disposition: form-data; name="%s"; ' % field
-            body += '; '.join(
-                ['%s="%s"' % (n, v) for n, v in value.items()]
-            ).encode() + b'\r\n'
-            body += '\r\n'.join(
-                ['%s: %s' % (n, v) for n, v in headers.items()]
-            ).encode() + b'\r\n'
-            body += b'\r\n' + data + b'\r\n'
-
-        body += b'--' + boundary + b'--\r\n'
-        return body, f"multipart/form-data; boundary={boundary.decode()}"
-
-    @staticmethod
-    def blind_encode(**fields):
-        boundary = binascii.hexlify(os.urandom(16)).decode('ascii')
-        body = (
-            "".join(
-                '--%s\r\n'
-                'Content-Disposition: form-data; name="%s"\r\n'
-                'Content-Type: text/plain; charset=UTF-8\r\n'
-                '\r\n'
-                '%s\r\n' % (
-                    boundary, field, value
-                ) for field, value in fields.items()
-            ) + "--%s--\r\n" % boundary
-        )
-        return body, "multipart/form-data; boundary=%s" % boundary
 
 
 class EndPoint(object):
@@ -206,12 +115,11 @@ class EndPoint(object):
                     url += "?" + urlencode(kwargs)
                 # if explicitly asked to send data multipart/form-data
                 if to_multipart is not None:
-                    if isinstance(to_multipart, FormData):
+                    if isinstance(to_multipart, uroot.FormData):
                         data, headers["Content-Type"] = to_multipart.encode()
                     elif isinstance(to_multipart, dict):
-                        data, headers["Content-Type"] = FormData.blind_encode(
-                            **to_multipart
-                        ).encode('utf-8')
+                        data, headers["Content-Type"] = \
+                            uroot.FormData.blind_encode(**to_multipart)
                     else:
                         raise Exception(
                             "can not initialize multipart with %s" %
