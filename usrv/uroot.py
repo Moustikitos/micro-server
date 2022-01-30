@@ -18,11 +18,12 @@ def context_call(cls, url, method, headers, data):
         return 400, "no endpoind found behind %s" % url
     try:
         headers = dict([k.lower(), v] for k, v in dict(headers).items())
-        content_type = headers.get('content-type')
-        if content_type == "application/json":
-            data = json.loads(data)
-        elif content_type == "application/x-www-form-urlencoded":
-            data = dict(parse.parse_qsl(data))
+        if data not in [None, ""]:
+            content_type = headers.get('content-type')
+            if content_type == "application/json":
+                data = json.loads(data)
+            elif content_type == "application/x-www-form-urlencoded":
+                data = dict(parse.parse_qsl(data))
         resp = func(method, url, headers, data)
         if isinstance(resp, tuple) and isinstance(resp[0], int):
             return resp
