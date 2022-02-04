@@ -58,14 +58,13 @@ class EndPoint(object):
             data = json.loads(text)
         except Exception as err:
             data = {
-                "success": True, "except": True,
+                "except": True,
                 "raw":
                     text.decode("utf-8") if isinstance(text, bytes)
                     else text,
                 "error": "%r" % err
             }
-        if isinstance(data, dict):
-            data["status"] = res.getcode()
+        data["status"] = res.getcode()
         return data
 
     @staticmethod
