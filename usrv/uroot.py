@@ -41,8 +41,8 @@ def wsgi_call(cls, environ, start_response):
     method = environ["REQUEST_METHOD"]
     # handle HEAD specificity
     if method == "HEAD":
-        func = getattr(cls, "ENDPOINTS", {}).get("HEAD").get(
-            parse.quote(environ.get('PATH_INFO', ''))
+        func = getattr(cls, "ENDPOINTS", {}).get("HEAD", {}).get(
+            parse.quote(environ.get('PATH_INFO', '')), None
         )
         if func is not None:
             data, content_type = cls.format_response("")
