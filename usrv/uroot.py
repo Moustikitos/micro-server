@@ -118,9 +118,10 @@ class uRawHandler(BaseHTTPRequestHandler):
     def do_(self, method="GET"):
         # handle HEAD specificity
         if method == "HEAD":
-            func = getattr(self.__class__, "ENDPOINTS", {}).get("HEAD", {}).get(
-                self.path.split("?")[0], None
-            )
+            func = \
+                getattr(self.__class__, "ENDPOINTS", {}).get("HEAD", {}).get(
+                    self.path.split("?")[0], None
+                )
             if func is not None:
                 data, content_type = self.format_response("")
                 self.send_response(200)
