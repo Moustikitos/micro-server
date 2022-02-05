@@ -12,7 +12,7 @@ import logging
 from usrv import uroot
 from urllib.request import Request, OpenerDirector, HTTPHandler
 from urllib.request import HTTPSHandler, BaseHandler
-from urllib.parse import urlencode
+from urllib.parse import urlencode, parse_qsl
 
 
 LOGGER = logging.getLogger("usrv.req")
@@ -52,16 +52,21 @@ class EndPoint(object):
         return self.method(*self.chain() + list(args), **kwargs)
 
     @staticmethod
-    def _manage_response(res, error=None):
+    def _manage_response(res):
         text = res.read()
+        text = text.decode("latin-1") if isinstance(text, bytes) else text
+        content_type = res.headers.get("content-type")
         try:
-            data = json.loads(text)
+            if "application/json" in content_type:
+                data = json.loads(text)
+            elif "application/x-www-form-urlencoded" in content_type:
+                data = dict(parse_qsl(text))
+            else:
+                data = {"raw": text}
         except Exception as err:
             data = {
                 "except": True,
-                "raw":
-                    text.decode("utf-8") if isinstance(text, bytes)
-                    else text,
+                "raw": text,
                 "error": "%r" % err
             }
         data["status"] = res.getcode()

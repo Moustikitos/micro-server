@@ -137,7 +137,7 @@ class uJsonHandler(uroot.uRawHandler):
 
     @staticmethod
     def format_response(resp):
-        return json.dumps(resp), "application/json"
+        return json.dumps(resp or {}), "application/json"
 
 
 class uJsonApp:
