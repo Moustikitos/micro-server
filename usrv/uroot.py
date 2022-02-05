@@ -50,7 +50,7 @@ def wsgi_call(cls, environ, start_response):
                 data.encode("latin-1") if not isinstance(data, bytes) else data
             )
         else:
-            start_response("400")
+            start_response("400", {})
         return b""
 
     http_input = ""
@@ -67,7 +67,7 @@ def wsgi_call(cls, environ, start_response):
     )
 
     if status > 299:
-        start_response("%d" % status)
+        start_response("%d" % status, {})
         return b""
 
     data, content_type = cls.format_response(resp)
