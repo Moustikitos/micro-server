@@ -62,7 +62,7 @@ class EndPoint(object):
             elif "application/x-www-form-urlencoded" in content_type:
                 data = dict(parse_qsl(text))
             else:
-                data = text
+                data = {"raw": text}
         except Exception as err:
             data = {
                 "except": True,
