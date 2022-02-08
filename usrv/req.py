@@ -62,14 +62,15 @@ class EndPoint(object):
             elif "application/x-www-form-urlencoded" in content_type:
                 data = dict(parse_qsl(text))
             else:
-                data = {"raw": text}
+                data = text
         except Exception as err:
             data = {
                 "except": True,
                 "raw": text,
                 "error": "%r" % err
             }
-        data["status"] = res.getcode()
+        if isinstance(data, dict):
+            data["status"] = res.getcode()
         return data
 
     @staticmethod
