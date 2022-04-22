@@ -119,7 +119,7 @@ class uRawHandler(BaseHTTPRequestHandler):
         # handle HEAD specificity
         if method == "HEAD":
             func = \
-                getattr(self.__class__, "ENDPOINTS", {}).get("HEAD", {}).get(
+                getattr(self, "ENDPOINTS", {}).get("HEAD", {}).get(
                     self.path.split("?")[0], None
                 )
             if func is not None:
@@ -149,7 +149,7 @@ class uRawHandler(BaseHTTPRequestHandler):
         ) % (self.server.server_address + (self.path, ))
 
         status, resp = context_call(
-            self.__class__, url, method, self.headers, http_input
+            self, url, method, self.headers, http_input
         )
 
         if status > 299:
@@ -157,7 +157,7 @@ class uRawHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        data, content_type = self.__class__.format_response(resp)
+        data, content_type = self.format_response(resp)
         if isinstance(data, str):
             data = data.encode("latin-1")
 
