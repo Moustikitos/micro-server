@@ -133,22 +133,19 @@ class Capsule:
         return self.func(*args, **kwargs)
 
 
-class uJsonHandler(uroot.uRawHandler):
+class uApp:
 
-    @staticmethod
-    def format_response(resp):
-        return json.dumps(resp or {}), "application/json"
-
-
-class uJsonApp:
-
-    def __init__(self, host="127.0.0.1", port=5000, loglevel=20):
+    def __init__(
+        self, host="127.0.0.1", port=5000, loglevel=20,
+        handler=uroot.uRawHandler
+    ):
         LOGGER.setLevel(loglevel)
+        self.handler = handler
         self.host = host
         self.port = port
 
     def __call__(self, environ, start_response):
-        return uroot.wsgi_call(uJsonHandler, environ, start_response)
+        return uroot.wsgi_call(self.handler, environ, start_response)
 
     def wrap(self):
         if not hasattr(self, "httpd"):
@@ -180,7 +177,7 @@ class uJsonApp:
         """
         For testing purpose only.
         """
-        self.httpd = HTTPServer((self.host, self.port), uJsonHandler)
+        self.httpd = HTTPServer((self.host, self.port), self.handler)
         if ssl:
             self.wrap()
             LOGGER.info("ssl socket wrapping done")
@@ -192,6 +189,22 @@ class uJsonApp:
             self.httpd.serve_forever()
         except KeyboardInterrupt:
             LOGGER.info("server stopped")
+
+
+class uJsonHandler(uroot.uRawHandler):
+
+    @staticmethod
+    def format_response(resp):
+        return json.dumps(resp or {}), "application/json"
+
+
+class uJsonApp(uApp):
+
+    def __init__(self, host="127.0.0.1", port=5000, loglevel=20):
+        LOGGER.setLevel(loglevel)
+        self.handler = uJsonHandler
+        self.host = host
+        self.port = port
 
 
 def bind(path, methods=["GET"], app=uroot.uRawHandler):
