@@ -115,27 +115,27 @@ def bittrex_v3filter(**kwargs):
     return kw
 
 
-GET = req.EndPoint(
-    method=lambda *a, **kw:
-        _trex_call("GET", *a, **bittrex_filter(**kw))
-)
-POST = req.EndPoint(
-    method=lambda *a, **kw:
-        _trex_call("POST", *a, **bittrex_filter(**kw))
-)
-
-
-def use_v3_api():
+def use_v2_api():
     global GET, POST
 
     GET = req.EndPoint(
         method=lambda *a, **kw:
-            _trex_v3call("GET", *a, **bittrex_v3filter(**kw))
+            _trex_call("GET", *a, **bittrex_filter(**kw))
     )
     POST = req.EndPoint(
         method=lambda *a, **kw:
-            _trex_v3call("POST", *a, **bittrex_v3filter(**kw))
+            _trex_call("POST", *a, **bittrex_filter(**kw))
     )
+
+
+GET = req.EndPoint(
+    method=lambda *a, **kw:
+        _trex_v3call("GET", *a, **bittrex_v3filter(**kw))
+)
+POST = req.EndPoint(
+    method=lambda *a, **kw:
+        _trex_v3call("POST", *a, **bittrex_v3filter(**kw))
+)
 
 
 def download_deposits(filename="deposits.csv"):

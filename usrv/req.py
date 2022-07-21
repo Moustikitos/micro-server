@@ -11,7 +11,7 @@ import logging
 
 from usrv import uroot
 from urllib.request import Request, OpenerDirector, HTTPHandler
-from urllib.request import HTTPSHandler, BaseHandler
+from urllib.request import HTTPSHandler, BaseHandler, FileHandler
 from urllib.parse import urlencode, parse_qsl
 
 
@@ -39,6 +39,7 @@ class EndPoint(object):
             EndPoint.opener = OpenerDirector()
             EndPoint.opener.add_handler(HTTPHandler())
             EndPoint.opener.add_handler(HTTPSHandler(context=CTX))
+            EndPoint.opener.add_handler(FileHandler())
 
     def __getattr__(self, attr):
         if attr not in ["elem", "parent", "method", "chain"]:
