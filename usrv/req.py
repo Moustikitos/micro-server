@@ -57,19 +57,22 @@ class EndPoint(object):
         text = res.read()
         text = text.decode("latin-1") if isinstance(text, bytes) else text
         content_type = res.headers.get("content-type")
-        try:
-            if "application/json" in content_type:
-                data = json.loads(text)
-            elif "application/x-www-form-urlencoded" in content_type:
-                data = dict(parse_qsl(text))
-            else:
-                data = {"raw": text}
-        except Exception as err:
-            data = {
-                "except": True,
-                "raw": text,
-                "error": "%r" % err
-            }
+        if content_type is not None:
+            try:
+                if "application/json" in content_type:
+                    data = json.loads(text)
+                elif "application/x-www-form-urlencoded" in content_type:
+                    data = dict(parse_qsl(text))
+                else:
+                    data = {"raw": text}
+            except Exception as err:
+                data = {
+                    "except": True,
+                    "raw": text,
+                    "error": "%r" % err
+                }
+        else:
+            data = {"raw": text}
         if isinstance(data, dict):
             data["status"] = res.getcode()
         return data
@@ -95,7 +98,7 @@ class EndPoint(object):
         peer = kwargs.pop("peer", False) or EndPoint.peer
         headers = kwargs.pop("headers", {
             "Content-Type": "application/json",
-            "User-agent": "Python/usrv"
+            "User-Agent": "Python/usrv"
         })
         to_multipart = kwargs.pop("_multipart", None)
         to_urlencode = kwargs.pop("_urlencode", None)
@@ -140,6 +143,7 @@ class EndPoint(object):
                 elif to_jsonify is not None:
                     headers["Content-Type"] = "application/json"
                     data = json.dumps(to_jsonify).encode('utf-8')
+                # print(url, data, headers)
             # if nothing provided send jsonified keywords as data
             else:
                 headers["Content-Type"] = "application/json"
