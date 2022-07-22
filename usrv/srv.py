@@ -2,9 +2,9 @@
 # © THOORENS Bruno
 
 """
-This module can be run indepenently from the `usrv` package. It contains all
-the utilities to launch a json server (ie, you get and send json) from python
-lib or python WGSI (highly recommended in production mode).
+This module It contains all the utilities to launch a json server (ie, you get
+and send json) from python lib or python WGSI (highly recommended in production
+mode).
 
   * to run server from python:
 ```bash
@@ -23,9 +23,9 @@ Options:
 
 BINDINGS is a list of python modules containing python binded functions.
 
-  * to run server behind a WSGI, point to a `MicroJsonApp` instance:
+  * to run server behind a WSGI, point to a `uJsonApp` instance:
 ```bash
-$ gunicorn 'srv:MicroJsonApp()' --bind=0.0.0.0:5000
+$ gunicorn 'srv:uJsonApp()' --bind=0.0.0.0:5000
 ```
 """
 
@@ -249,6 +249,7 @@ def bind(path, methods=["GET"], app=uroot.uRawHandler):
             # get path and query from url
             parse = urlparse.urlparse(url)
             parse_qsl = urlparse.parse_qsl(parse.query)
+            # data = app.format_response(data)
 
             # gather variables from url path
             _urlmatch = {}
