@@ -54,9 +54,10 @@ class EndPoint(object):
 
     @staticmethod
     def _manage_response(res):
-        text = res.read()
-        text = text.decode("latin-1") if isinstance(text, bytes) else text
         content_type = res.headers.get("content-type")
+        text = res.read()
+        text = text.decode(res.headers.get_content_charset("latin-1")) \
+            if isinstance(text, bytes) else text
         if content_type is not None:
             try:
                 if "application/json" in content_type:
