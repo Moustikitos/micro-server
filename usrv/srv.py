@@ -2,8 +2,8 @@
 # © THOORENS Bruno
 
 """
-This module It contains all the utilities to launch a json server (ie, you get
-and send json) from python lib or python WGSI (highly recommended in production
+This module contains all the utilities to launch a json server (ie, you get and
+send json) from python lib or python WGSI (highly recommended in production
 mode).
 
   * to run server from python:
@@ -46,7 +46,7 @@ from http.server import HTTPServer
 import urllib.parse as urlparse
 
 LOGGER = logging.getLogger("usrv.srv")
-logging.basicConfig()
+
 FixArgSpec = namedtuple(
     "FixArgSpec", (
         'args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
@@ -98,11 +98,7 @@ class MatchDict(dict):
 
     def get(self, item, default=None):
         # try to get item as for a normal dict
-        value = dict.get(
-            self, item, self._matchers.get(
-                item, default
-            )
-        )
+        value = dict.get(self, item, self._matchers.get(item, default))
         if value is not None:
             return value
         # if no value found then it could be a string that matches any of
@@ -249,7 +245,6 @@ def bind(path, methods=["GET"], app=uroot.uRawHandler):
             # get path and query from url
             parse = urlparse.urlparse(url)
             parse_qsl = urlparse.parse_qsl(parse.query)
-            # data = app.format_response(data)
 
             # gather variables from url path
             _urlmatch = {}
@@ -378,7 +373,7 @@ def main():
             return a, b, kwargs
 
         # get url, headers, data and method in kwargs
-        @bind("/vargs_kwargs", app=uJsonHandler)
+        @bind("/vargs_kwargs", app=uJsonHandler, methods=["GET", "POST"])
         def test3(a, b=3, *args, **kwargs):
             return (a, b) + args, kwargs
 
