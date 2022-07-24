@@ -1,3 +1,3 @@
-recursive-include uio/plugins *.py
+recursive-include usrv/plugins *.py
 include LICENSE
 include VERSION
