@@ -21,7 +21,7 @@ def pushbullet_pushes(title, body):
     if pushbullet != {}:
         return req.POST.v2.pushes(
             peer="https://api.pushbullet.com",
-            body=body, title=title, type="note",
+            _jsonify={"body": body, "title": title, "type": "note"},
             headers={
                 'Access-Token': pushbullet["token"],
             }
