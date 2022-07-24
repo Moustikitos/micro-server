@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # © THOORENS Bruno
 
-"""
-"""
-
 import re
 import ssl
 import json
@@ -34,7 +31,7 @@ class EndPoint(object):
         self.elem = elem
         self.parent = parent
         self.method = method
-
+        # initialize opener only once
         if EndPoint.opener is None:
             EndPoint.opener = OpenerDirector()
             EndPoint.opener.add_handler(HTTPHandler())
@@ -42,12 +39,12 @@ class EndPoint(object):
             EndPoint.opener.add_handler(FileHandler())
 
     def __getattr__(self, attr):
-        if attr not in ["elem", "parent", "method", "chain"]:
+        try:
+            return object.__getattr__(self, attr)
+        except AttributeError:
             if EndPoint.startswith_.match(attr):
                 attr = attr[1:]
             return EndPoint(attr, self, self.method)
-        else:
-            return object.__getattr__(self, attr)
 
     def __call__(self, *args, **kwargs):
         return self.method(*self.chain() + list(args), **kwargs)
@@ -56,36 +53,39 @@ class EndPoint(object):
     def _manage_response(res):
         content_type = res.headers.get("content-type")
         text = res.read()
-        text = text.decode(res.headers.get_content_charset("latin-1")) \
-            if isinstance(text, bytes) else text
+        if isinstance(text, bytes):
+            text = text.decode(res.headers.get_content_charset("latin-1"))
         if content_type is not None:
-            try:
-                if "application/json" in content_type:
-                    data = json.loads(text)
-                elif "application/x-www-form-urlencoded" in content_type:
-                    data = dict(parse_qsl(text))
-                else:
-                    data = {"raw": text}
-            except Exception as err:
-                data = {
-                    "except": True,
-                    "raw": text,
-                    "error": "%r" % err
-                }
+            if "application/json" in content_type:
+                data = json.loads(text)
+            elif "application/x-www-form-urlencoded" in content_type:
+                data = dict(parse_qsl(text))
+            else:
+                data = {"raw": text}
         else:
             data = {"raw": text}
-        if isinstance(data, dict):
+
+        if isinstance(data, dict) and "status" not in data:
             data["status"] = res.getcode()
         return data
 
     @staticmethod
     def _open(req):
-        if req is False:
-            return {"success": req}
+        if not isinstance(req, Request):
+            LOGGER.error("it seems request is not build properly")
+            return {
+                "success": False, "req": "%s" % req, "except": True,
+                "where": "_open", "status": 500,
+                "msg": "it seems request is not build properly"
+            }
         try:
             res = EndPoint.opener.open(req, timeout=EndPoint.timeout)
         except Exception as error:
-            return {"success": False, "error": "%r" % error, "except": True}
+            LOGGER.error("%r", error)
+            return {
+                "success": False, "error": "%r" % error, "except": True,
+                "where": "_open", "status": 500
+            }
         else:
             return EndPoint._manage_response(res)
 
@@ -109,6 +109,7 @@ class EndPoint(object):
             if not EndPoint.quiet:
                 raise Exception("No peer connection available")
             else:
+                LOGGER.info("No peer connection available")
                 return False
 
         chain = ("/" + "/".join([a for a in args if a])).replace("//", "/")
@@ -137,18 +138,17 @@ class EndPoint(object):
                         )
                 # if explicitly asked to send data as urlencoded
                 elif to_urlencode is not None:
-                    headers["Content-Type"] = \
-                        "application/x-www-form-urlencoded"
                     data = urlencode(to_urlencode).encode('utf-8')
+                    headers["Content-Type"] = \
+                        "application/x-www-form-urlencoded; charset=utf-8"
                 # if explicitly asked to send data as json
                 elif to_jsonify is not None:
-                    headers["Content-Type"] = "application/json"
                     data = json.dumps(to_jsonify).encode('utf-8')
-                # print(url, data, headers)
+                    headers["Content-Type"] = "application/json; charset=utf-8"
             # if nothing provided send jsonified keywords as data
             else:
-                headers["Content-Type"] = "application/json"
                 data = json.dumps(kwargs).encode('utf-8')
+                headers["Content-Type"] = "application/json; charset=utf-8"
             req = Request(url, data, headers)
         # tweak request
         req.get_method = lambda: method
