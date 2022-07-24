@@ -6,8 +6,8 @@ import base64
 from usrv import req, loadJson
 
 
-def freemobile_sendmsg(title, body):
-    freemobile = loadJson("freemobile.json")
+def freemobile_sendmsg(title, body, **freemobile):
+    freemobile.update(loadJson("freemobile.json"))
     if freemobile != {}:
         freemobile["msg"] = title + ":\n" + body
         return req.POST.sendmsg(
@@ -16,20 +16,20 @@ def freemobile_sendmsg(title, body):
         )
 
 
-def pushbullet_pushes(title, body):
-    pushbullet = loadJson("pushbullet.json")
+def pushbullet_pushes(title, body, **pushbullet):
+    pushbullet.update(loadJson("pushbullet.json"))
     if pushbullet != {}:
         return req.POST.v2.pushes(
             peer="https://api.pushbullet.com",
             _jsonify={"body": body, "title": title, "type": "note"},
             headers={
-                'Access-Token': pushbullet["token"],
+                'Access-Token': pushbullet.get("token", ""),
             }
         )
 
 
-def pushover_messages(title, body):
-    pushover = loadJson("pushover.json")
+def pushover_messages(title, body, **pushover):
+    pushover.update(loadJson("pushover.json"))
     if pushover != {}:
         return req.POST(
             "1", "messages.json",
@@ -42,8 +42,8 @@ def pushover_messages(title, body):
         )
 
 
-def twilio_messages(title, body):
-    twilio = loadJson("twilio.json")
+def twilio_messages(title, body, **twilio):
+    twilio.update(loadJson("twilio.json"))
     if twilio != {}:
         authentication = base64.b64encode(
             ("%s:%s" % (twilio["sid"], twilio["auth"])).encode('utf-8')
