@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler
 from urllib import parse
 
 
-def context_call(cls, url, method, headers, data):
+def context_call(cls, url, method, headers, data: str):
     path = parse.urlparse(url).path
     func = getattr(cls, "ENDPOINTS", {}).get(method, {}).get(path)
     if func is None:
@@ -20,9 +20,12 @@ def context_call(cls, url, method, headers, data):
         headers = dict([k.lower(), v] for k, v in dict(headers).items())
         if data not in [None, ""]:
             content_type = headers.get('content-type')
-            if content_type == "application/json":
+            # using 'in' to perform correctly event with a charset declaration:
+            # content-type: application/json; charset=utf-8
+            # content-type: application/x-www-form-urlencoded; charset=utf-8
+            if "application/json" in content_type:
                 data = json.loads(data)
-            elif content_type == "application/x-www-form-urlencoded":
+            elif "application/x-www-form-urlencoded" in content_type:
                 data = dict(parse.parse_qsl(data))
         resp = func(method, url, headers, data)
         if isinstance(resp, tuple) and isinstance(resp[0], int):
@@ -55,6 +58,7 @@ def wsgi_call(cls, environ, start_response):
 
     http_input = ""
     if method not in ["GET", "DELETE", "OPTIONS", "TRACE"]:
+        # read data from wsgi environ and decode it if it is bytes.
         http_input = environ["wsgi.input"].read()
         if isinstance(http_input, bytes):
             http_input = http_input.decode("latin-1")
@@ -100,7 +104,7 @@ def wsgi_rebuild_url(env):
     url += parse.quote(env.get('SCRIPT_NAME', ''))
     url += parse.quote(env.get('PATH_INFO', ''))
 
-    if env.get('QUERY_STRING'):
+    if env.get('QUERY_STRING', False):
         url += '?' + env['QUERY_STRING']
 
     return url
@@ -141,7 +145,9 @@ class uRawHandler(BaseHTTPRequestHandler):
                 int(length) if length is not None else 0
             )
             if isinstance(http_input, bytes):
-                http_input = http_input.decode("latin-1")
+                http_input = http_input.decode(
+                    self.headers.get_content_charset("latin-1")
+                )
 
         url = (
             "https://%s:%s%s" if isinstance(self.server.socket, ssl.SSLSocket)
@@ -165,9 +171,7 @@ class uRawHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', content_type)
         self.send_header('Content-length', len(data))
         self.end_headers()
-        return self.wfile.write(
-            data if isinstance(data, bytes) else data.encode("latin-1")
-        )
+        return self.wfile.write(data)
 
     @staticmethod
     def format_response(resp):
@@ -257,4 +261,5 @@ class FormData(list):
 
     @staticmethod
     def loads(data):
+        # TODO
         pass
