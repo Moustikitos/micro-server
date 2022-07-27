@@ -8,7 +8,7 @@ import logging
 
 from usrv import uroot
 from urllib.request import Request, OpenerDirector, HTTPHandler
-from urllib.request import HTTPSHandler, BaseHandler, FileHandler
+from urllib.request import HTTPSHandler, BaseHandler
 from urllib.parse import urlencode, parse_qsl
 
 
@@ -36,7 +36,6 @@ class EndPoint(object):
             EndPoint.opener = OpenerDirector()
             EndPoint.opener.add_handler(HTTPHandler())
             EndPoint.opener.add_handler(HTTPSHandler(context=CTX))
-            EndPoint.opener.add_handler(FileHandler())
 
     def __getattr__(self, attr):
         try:
@@ -91,16 +90,28 @@ class EndPoint(object):
 
     @staticmethod
     def _call(method="GET", *args, **kwargs):
-        return EndPoint._open(EndPoint.build_req(method, *args, **kwargs))
+        try:
+            return EndPoint._open(EndPoint.build_req(method, *args, **kwargs))
+        except Exception as error:
+            LOGGER.error("internal error occured on request building")
+            return {
+                "success": False, "error": "%r" % error, "except": True,
+                "where": "_call", "status": 500,
+                "msg": "internal error occured on request building"
+            }
 
     @staticmethod
     def build_req(method="GET", *args, **kwargs):
+        # build headers
+        headers = dict({
+            "Content-type": "application/json",
+            "User-agent": "Python/usrv"
+        }, **dict(
+            (k.capitalize(), v)
+            for k, v in kwargs.pop("headers", {}).items()
+        ))
         method = method.upper()
         peer = kwargs.pop("peer", False) or EndPoint.peer
-        headers = kwargs.pop("headers", {
-            "Content-Type": "application/json",
-            "User-Agent": "Python/usrv"
-        })
         to_multipart = kwargs.pop("_multipart", None)
         to_urlencode = kwargs.pop("_urlencode", None)
         to_jsonify = kwargs.pop("_jsonify", None)
@@ -111,25 +122,36 @@ class EndPoint(object):
             else:
                 LOGGER.info("No peer connection available")
                 return False
-
+        # buid request
         chain = ("/" + "/".join([a for a in args if a])).replace("//", "/")
-        url = peer + chain
-
+        req = Request(peer + chain, None, headers)
+        # transform kwargs into query string if bodyless method used
         if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
             if len(kwargs):
-                url += "?" + urlencode(kwargs)
-            req = Request(url, None, headers)
+                req.full_url = req.full_url + "?" + urlencode(kwargs)
         else:
-            # if data provided other than kwargs use kwargs to build url
+            content_type = req.headers.get("Content-type", "").split(";")
+            if len(content_type) > 1:
+                content_type, encoding = content_type
+                key, value = encoding.split("=")
+                # key coud be 'charset' or 'boundary'
+                if key.lower() == "charset":
+                    encoding = value.strip()
+                else:
+                    encoding = "latin-1"
+            else:
+                content_type, encoding = content_type[0], "latin-1"
             if any([to_urlencode, to_jsonify, to_multipart]):
+                # if data provided other than kwargs use kwargs to build
+                # query string
                 if len(kwargs):
-                    url += "?" + urlencode(kwargs)
+                    req.full_url = req.full_url + "?" + urlencode(kwargs)
                 # if explicitly asked to send data multipart/form-data
                 if to_multipart is not None:
                     if isinstance(to_multipart, uroot.FormData):
-                        data, headers["Content-Type"] = to_multipart.encode()
+                        data, content_type = to_multipart.encode()
                     elif isinstance(to_multipart, dict):
-                        data, headers["Content-Type"] = \
+                        data, content_type = \
                             uroot.FormData.blind_encode(**to_multipart)
                     else:
                         raise Exception(
@@ -138,18 +160,24 @@ class EndPoint(object):
                         )
                 # if explicitly asked to send data as urlencoded
                 elif to_urlencode is not None:
-                    data = urlencode(to_urlencode).encode('utf-8')
-                    headers["Content-Type"] = \
-                        "application/x-www-form-urlencoded; charset=utf-8"
+                    data = urlencode(to_urlencode)
+                    content_type = "application/x-www-form-urlencoded"
                 # if explicitly asked to send data as json
                 elif to_jsonify is not None:
-                    data = json.dumps(to_jsonify).encode('utf-8')
-                    headers["Content-Type"] = "application/json; charset=utf-8"
+                    data = json.dumps(to_jsonify)
+                    content_type = "application/json"
             # if nothing provided send jsonified keywords as data
+            elif content_type == "application/json":
+                data = json.dumps(kwargs)
+            elif kwargs:
+                data = str(kwargs)
             else:
-                data = json.dumps(kwargs).encode('utf-8')
-                headers["Content-Type"] = "application/json; charset=utf-8"
-            req = Request(url, data, headers)
+                data = ""
+            # set data and content-type header
+            req.data = data.encode(encoding)
+            req.add_header(
+                "content-type", f"{content_type}; charset={encoding}"
+            )
         # tweak request
         req.get_method = lambda: method
         return req
