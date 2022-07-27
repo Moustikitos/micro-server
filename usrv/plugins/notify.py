@@ -62,7 +62,7 @@ def twilio_messages(title, body, **twilio):
         )
 
 
-def send(title, body):
+def send(title, body, data_folder=None):
     title = title.decode("utf-8") if isinstance(title, bytes) else title
     body = body.decode("utf-8") if isinstance(body, bytes) else body
 
@@ -72,7 +72,10 @@ def send(title, body):
         pushover_messages,
         twilio_messages
     ]:
-        response = func(title, body)
+        response = func(
+            title, body,
+            **loadJson(f"{func.__name__.split('_')[0]}.notify", data_folder)
+        )
         if isinstance(response, dict):
             if response.get("status", 1000) < 300:
                 return response
