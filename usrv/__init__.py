@@ -8,6 +8,7 @@ import logging
 
 # set basic logging
 logging.basicConfig()
+LOG = logging.getLogger("usrv")
 # configuration pathes
 ROOT = os.path.abspath(os.path.dirname(__file__))
 JSON = os.path.abspath(os.path.join(ROOT, ".json"))

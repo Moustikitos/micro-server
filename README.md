@@ -2,15 +2,6 @@
 
 Micro IO package (`usrv`) is a pure python JSON server implementation.
 
-### Support this project
- 
- [![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate)
- 
- [Buy &#1126;](https://bittrex.com/Account/Register?referralCode=NW5-DQO-QMT) and:
- 
-   * [X] Send &#1126; to `AUahWfkfr5J4tYakugRbfow7RWVTK35GPW`
-   * [X] Vote `arky` on [Ark blockchain](https://explorer.ark.io) and [earn &#1126; weekly](http://dpos.arky-delegate.info/arky)
-
 # Install
 
 ```
@@ -19,25 +10,27 @@ $ pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 
 # `usrv.srv`
 
-Run a very low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333). Bind python code to any HTTP requests easily using decorator syntax.
-
+Bind python code to any HTTP requests easily using decorator syntax.
 `srv` module can be used in standalone mode outside of `usrv` package.
+
+# `usrv.app`
+
+Run a low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333)
 
 ## Fast and simple
 
 Let's create a server with `/test` endpoint in a python module named `test.py`:
 
 ```python
-from usrv import srv
+from usrv import route, app
 
-@srv.bind("/test")
+@route.bind("/test")
 def do_test(a, b):
     # write some code and return something
     return a, b
 
 def launchApp():
-    app = srv.MicroJsonApp(host="127.0.0.1", port=5000, loglevel=10)
-    app.run(ssl=False)
+    app.uApp(host="127.0.0.1", port=5000, loglevel=20).run(ssl=False)
 ```
 
 Server can be run from python interpreter:
@@ -50,11 +43,12 @@ CTRL+C to stop...
 ```
 
 Now going to `127.0.0.1:5000/test` with any browser gives:
-```
-{"status": 200, "result": [null, null]}
+
+```json
+[null, null]
 ```
 
-## Extracting values from url query
+<!-- ## Extracting values from url query
 
 `[null, null]` above are the returned values `a` and `b` from `do_test` function. They can be extracted from query string. Let's type `127.0.0.1:5000/test?b=12&a=Paris` in the address bar:
 
@@ -241,9 +235,9 @@ resp = req.GET.api.delegates(orderBy="username:asc", peer="https://dexplorer.ark
 
 #### `headers`
 
-Keyword used to define custom headers in the request.
+Keyword used to define custom headers in the request. -->
 
-# Plugins
+<!-- # Plugins
 
 ## [IpInfo](https://www.ipinfo.io)
 
@@ -296,4 +290,10 @@ Check pinned file here : `ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqce
 {'ok': True, 'value': {'ipnft': 'bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei', 'url': 'ipfs://bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei/metadata.json', 'data': {'description': 'Python supporting ARK', 'image': 'ipfs://bafybeicvqadvmhhzsqevu7qwwg4wjieinyzam75lrabqceiin6ja75k2ky/arky.png', 'name': 'arky logo', 'properties': {'Licence': 'MIT Licence', 'name': 'arky', 'size': '272x272'}}}, 'status': 200}
 ```
 
-Check erc 1155 metadata here : `ipfs://bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei/metadata.json`
+Check erc 1155 metadata here : `ipfs://bafyreic3kxmyp2aypszz2uon4ckd42zmxjsojjfo44ismisignsbxn57ei/metadata.json` -->
+
+### Support this project
+ 
+[![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate)
+[![Paypal me](https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&logoColor=white)](https://paypal.me/toons)
+[![Bitcoin](https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin)](https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png)
