@@ -1,18 +1,38 @@
 # -*- coding: utf-8 -*-
 # © THOORENS Bruno
 
+"""
+This module contains all the utilities to launch a micro server (ie, you get
+and send json) from python lib or WGSI (highly recommended in production mode).
+
+```bash
+$ python route.py -h
+Usage: route.py [options] BINDINGS...
+
+Options:
+  -h, --help            show this help message and exit
+  -l LOGLEVEL, --log-level=LOGLEVEL
+                        set log level from 1 to 50 [default: 20]
+  -i HOST, --ip=HOST    ip to run from             [default: 127.0.0.1]
+  -p PORT, --port=PORT  port to use                [default: 5000]
+```
+
+`BINDINGS` is a list of python modules containing python bound functions.
+"""
+
 import re
 import ssl
 import json
 import typing
 import inspect
+import traceback
 
 import urllib.parse as urlparse
 
 from usrv import LOG
 from collections.abc import Callable
 from collections import OrderedDict, namedtuple
-from http.server import BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 MARKUP_PATTERN = re.compile("<([^><]*)>")
 FixArgSpec = namedtuple(
@@ -36,6 +56,9 @@ class UrlMatchError(Exception):
 
 
 class uHTTPRequestHandler(BaseHTTPRequestHandler):
+    """
+    Custom HTTP request handler with all HTTP request defined.
+    """
 
     def __getattr__(self, attr):
         if attr.startswith("do_"):
@@ -63,12 +86,23 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
         for regexp, callback in uHTTPRequestHandler.ENDPOINTS.GET.items():
             if regexp.match(path):
                 try:
-                    result = callback(url, headers, http_input or None)
-                    self.send_response(200)
+                    status, *result = callback(
+                        url, headers, http_input or None
+                    )
+                    if not isinstance(status, int) or \
+                        not (100 <= status < 600):
+                        LOG.error(
+                            f"first value returned by {callback} "
+                            "should be an HTTP response status code"
+                        )
+                        self.send_error(406)
+                        result = None
+                    else:
+                        self.send_response(status)
+                        result = None
                 except Exception as error:
-                    LOG.exception(f"{error}")
+                    LOG.error("%r\n%s", error, traceback.format_exc())
                     self.send_error(500)
-                    result = None
                 data, content_type = self.format_response(result)
                 if isinstance(data, str):
                     data = data.encode("latin-1")
@@ -154,7 +188,7 @@ def callback(
             params[name] = typ_(value)
     except Exception as error:
         raise UrlMatchError(f"error occured on parsnig URL:\n{error}")
-        # create a void OrderedDict of positional argument
+    # create a void OrderedDict of positional argument
     positional = OrderedDict([arg, None] for arg in arg_spec.args)
     # update it with default values if any
     if arg_spec.defaults is not None:
@@ -165,19 +199,20 @@ def callback(
         )
     # update with what is found in url querry string and then in url path so
     # typing is preserved
+    parse_qsl = tuple([k, v] for k, v in parse_qsl if k not in params)
     positional.update(
-        OrderedDict([k, v] for k, v in parse_qsl if k in arg_spec.args),
-        **OrderedDict([k, v] for k, v in params.items() if k in arg_spec.args)
+        OrderedDict([k, v] for k, v in params.items() if k in arg_spec.args),
+        **OrderedDict([k, v] for k, v in parse_qsl if k in arg_spec.args)
     )
     # build *args and **kwargs for function call 
     args = tuple(positional.values())
-    kwargs = {}
+    kwargs = OrderedDict()
     if arg_spec.varkw is not None:
         kwargs.update(
             dict([k, v] for k, v in parse_qsl if k not in arg_spec.args),
-            headers = headers, data=data,
             **dict([k, v] for k, v in params.items() if k not in arg_spec.args)
         )
+        kwargs.update(headers=headers, data=data)
     elif arg_spec.varargs is not None:
         args += tuple(v for k, v in parse_qsl if k not in arg_spec.args) + \
             tuple(v for k, v in params.items() if k not in arg_spec.args) + \
@@ -185,37 +220,65 @@ def callback(
     return function(*args, **kwargs)
 
 
-if __name__ == "__main__":
-    from http.server import HTTPServer
-
-    # url, headers, data and method loosed
-    @bind("/")
-    def test0(a, b=0):
-        return a, b
-
-    # get url, headers, data and method in args
-    @bind("/<float:c>/vargs")
-    def test1(a, b=1, c=0, *args):
-        return (a, b, c) + args
-
-    # get url, headers, data and method in kwargs
-    @bind("/<name>/kwargs")
-    def test2(a, b=2, **kwargs):
-        return a, b, kwargs
-
-    # get url, headers, data and method in kwargs
-    @bind("/<name>/<int:c>/vargs_kwargs")
-    def test3(a, b=2, *args, **kwargs):
-        return a, b, args, kwargs
-
-
-    httpd = HTTPServer(("127.0.0.1", 5000), uHTTPRequestHandler)
+def run(host: str = "127.0.0.1", port: int = 5000, loglevel: int = 20) -> None:
+    httpd = HTTPServer((host, port), uHTTPRequestHandler)
     LOG.setLevel(20)
     try:
-        LOG.info(
-            "listening on %s:%s\nCTRL+C to stop..." % 
-            ("http://127.0.0.1", 5000)
-        )
+        LOG.info("listening on %s:%s\nCTRL+C to stop...", host, port)
         httpd.serve_forever()
     except KeyboardInterrupt:
         LOG.info("server stopped")
+
+
+if __name__ == "__main__":
+    import importlib
+    from optparse import OptionParser
+
+    parser = OptionParser(
+        usage="usage: %prog [options] BINDINGS...",
+        version="%prog 1.0"
+    )
+    parser.add_option(
+        "-l", "--log-level", action="store", dest="loglevel", default=20,
+        type="int",
+        help="set log level from 1 to 50 [default: 20]"
+    )
+    parser.add_option(
+        "-i", "--ip", action="store", dest="host", default="127.0.0.1",
+        help="ip to run from             [default: 127.0.0.1]"
+    )
+    parser.add_option(
+        "-p", "--port", action="store", dest="port", default=5000,
+        type="int",
+        help="port to use                [default: 5000]"
+    )
+    (options, args) = parser.parse_args()
+
+    if len(args) == 0:
+        # url, headers, data and method loosed
+        @bind("/")
+        def test0(a, b=0):
+            return 200, a, b
+        # get url, headers, data and method in args
+        @bind("/<float:c>/vargs")
+        def test1(a, b=1, c=0, *args):
+            return 200, (a, b, c) + args
+        # get url, headers, data and method in kwargs
+        @bind("/<name>/kwargs")
+        def test2(name, a, b=2, **kwargs):
+            return 200, name, a, b, kwargs
+        # get url, headers, data and method in kwargs
+        @bind("/<name>/<int:c>/vargs_kwargs")
+        def test3(name, a, b=2, *args, **kwargs):
+            return 200, name, a, b, args, kwargs
+        @bind("/406_error")
+        def test3(a, b=2, *args, **kwargs):
+            return 99, a, b, args, kwargs
+    else:
+        for name in args:
+            try:
+                importlib.import_module(name)
+            except ImportError as error:
+                LOG.error("%r\n%s", error, traceback.format_exc())
+
+    run(options.host, options.port, options.loglevel)
