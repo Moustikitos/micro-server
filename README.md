@@ -17,7 +17,18 @@ Bind python code to any HTTP requests easily using decorator syntax.
 
 ## `usrv.app`
 
-Run a low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333)
+Run a low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333).
+
+```python
+import waitress  # wsgi server for windows
+from usrv import app, route
+
+@route.bind("/index")
+def index(**kw):
+    return 200, "Index page", kw
+
+waitress.serve(app.uApp(), threads=2)
+```
 
 ## Fast and simple
 
