@@ -8,10 +8,10 @@ Micro server package (`usrv`) is a pure python JSON server implementation.
 $> pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 ```
 
-# `usrv.srv`
+# `usrv.route`
 
 Bind python code to any HTTP requests easily using decorator syntax.
-`srv` module can be used in standalone mode outside of `usrv` package.
+`route` module can be used in standalone mode outside of `usrv` package.
 
 # `usrv.app`
 
@@ -33,7 +33,7 @@ def launchApp():
     route.run(host="127.0.0.1", port=5000, loglevel=20)
 ```
 
-**Bound functions have to return a valif HTTP status code** (single or first of tuple).
+**Bound functions have to return a tuple with a valid HTTP status code as first item**.
 Server can be run from python interpreter:
 
 ```python

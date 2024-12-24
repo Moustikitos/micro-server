@@ -3,7 +3,6 @@
 
 import os
 import ssl
-import logging
 import traceback
 
 from usrv import route, wsgi, LOG
@@ -13,10 +12,10 @@ from http.server import HTTPServer
 class uApp:
 
     def __init__(
-        self, host="127.0.0.1", port=5000, loglevel=30,
+        self, host="127.0.0.1", port=5000, loglevel=20,
         handler=route.uHTTPRequestHandler
     ):
-        self.loglevel = loglevel
+        LOG.setLevel(loglevel)
         self.handler = handler
         self.host = host
         self.port = port
@@ -55,8 +54,6 @@ class uApp:
         For testing purpose only.
         """
         self.httpd = HTTPServer((self.host, self.port), self.handler)
-        LOG.setLevel(self.loglevel)
-        print(LOG.level)
         if ssl:
             self.wrap()
             LOG.info("ssl socket wrapping done")
@@ -71,5 +68,4 @@ class uApp:
 
 
 if __name__ == "__main__":
-    app = uApp()
-    app.run()
+    app = uApp().run()

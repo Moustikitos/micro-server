@@ -221,8 +221,8 @@ def callback(
 
 
 def run(host: str = "127.0.0.1", port: int = 5000, loglevel: int = 20) -> None:
-    httpd = HTTPServer((host, port), uHTTPRequestHandler)
     LOG.setLevel(20)
+    httpd = HTTPServer((host, port), uHTTPRequestHandler)
     try:
         LOG.info("listening on %s:%s\nCTRL+C to stop...", host, port)
         httpd.serve_forever()
@@ -260,20 +260,25 @@ if __name__ == "__main__":
         def test0(a, b=0):
             return 200, a, b
         # get url, headers, data and method in args
+
         @bind("/<float:c>/vargs")
         def test1(a, b=1, c=0, *args):
             return 200, (a, b, c) + args
         # get url, headers, data and method in kwargs
+
         @bind("/<name>/kwargs")
         def test2(name, a, b=2, **kwargs):
             return 200, name, a, b, kwargs
         # get url, headers, data and method in kwargs
+
         @bind("/<name>/<int:c>/vargs_kwargs")
         def test3(name, a, b=2, *args, **kwargs):
             return 200, name, a, b, args, kwargs
+
         @bind("/406_error")
-        def test3(a, b=2, *args, **kwargs):
+        def test4(a, b=2, *args, **kwargs):
             return 99, a, b, args, kwargs
+
     else:
         for name in args:
             try:
