@@ -90,7 +90,7 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                         url, headers, http_input or None
                     )
                     if not isinstance(status, int) or \
-                        not (100 <= status < 600):
+                       not (100 <= status < 600):
                         LOG.error(
                             f"first value returned by {callback} "
                             "should be an HTTP response status code"
@@ -164,9 +164,8 @@ def bind(
                 raise EndpointAlreadyDefined(f"{path} regexp already set")
             # set regexp - callback pair
             getattr(target.ENDPOINTS, method)[regexp] = \
-                lambda url, headers, data, \
-                    f=function, m=markups, r=regexp, a=arg_spec:\
-                    callback(url, headers, data, f, m, r, a)
+                lambda url, headers, data, f=function, m=markups, r=regexp, \
+                a=arg_spec: callback(url, headers, data, f, m, r, a)
     return decorator
 
 
@@ -204,7 +203,7 @@ def callback(
         OrderedDict([k, v] for k, v in params.items() if k in arg_spec.args),
         **OrderedDict([k, v] for k, v in parse_qsl if k in arg_spec.args)
     )
-    # build *args and **kwargs for function call 
+    # build *args and **kwargs for function call
     args = tuple(positional.values())
     kwargs = OrderedDict()
     if arg_spec.varkw is not None:

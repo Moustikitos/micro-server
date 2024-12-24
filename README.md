@@ -1,23 +1,25 @@
+# `usrv`
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE)
 
 Micro server package (`usrv`) is a pure python JSON server implementation.
 
-# Install
+## Install
 
 ```bash
 $> pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 ```
 
-# `usrv.route`
+## `usrv.route`
 
 Bind python code to any HTTP requests easily using decorator syntax.
 `route` module can be used in standalone mode outside of `usrv` package.
 
-# `usrv.app`
+## `usrv.app`
 
 Run a low footprint python server or [PEP#3333 WSGI server](https://www.python.org/dev/peps/pep-3333)
 
-# Fast and simple
+## Fast and simple
 
 Let's create a server with `/test` endpoint in a python module named `test.py`:
 
@@ -186,7 +188,7 @@ Options:
   -p PORT, --port=PORT  port to use                [default: 5000]
 ```
 
-### Support this project
+## Support this project
 
 [![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate)
 [![Paypal me](https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&logoColor=white)](https://paypal.me/toons)
