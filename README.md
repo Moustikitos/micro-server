@@ -7,7 +7,7 @@ Micro server package (`usrv`) is a pure python JSON server implementation.
 ## Install
 
 ```bash
-$> pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
+$ pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 ```
 
 ## `usrv.route`
@@ -188,15 +188,18 @@ def do_test(a, b, **kwargs):
 Server can be launched from command line using python module names for bindings. Modules containing bound functions have to be found by python. This is not recomended for production.
 
 ```bash
-$ python route.py -h
-Usage: route.py [options] BINDINGS...
+$ python wsgi_srv.py -h
+Usage: wsgi_srv.py [options] BINDINGS...
 
 Options:
+  --version             show program's version number and exit
   -h, --help            show this help message and exit
+  -t THREADS, --threads=THREADS
+                        set thread number           [default: 2]
   -l LOGLEVEL, --log-level=LOGLEVEL
-                        set log level from 1 to 50 [default: 20]
-  -i HOST, --ip=HOST    ip to run from             [default: 127.0.0.1]
-  -p PORT, --port=PORT  port to use                [default: 5000]
+                        set log level from 1 to 100 [default: 20]
+  -i HOST, --ip=HOST    ip to run from              [default: 127.0.0.1]
+  -p PORT, --port=PORT  port to use                 [default: 5000]
 ```
 
 ## Support this project
