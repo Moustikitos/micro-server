@@ -1,0 +1,62 @@
+loaders:
+  - type: python
+
+processors:
+  - type: filter
+    documented_only: true
+  - type: smart
+  - type: crossref
+
+hooks:
+  pre-render:
+  - python -c "import os;os.makedirs('./docs', exist_ok=True)"
+
+renderer:
+  output_directory: .
+  content_directory_name: docs
+  type: mkdocs
+
+  markdown:
+    use_fixed_header_levels: true
+    header_level_by_type:
+      Module: 1
+      Class: 2
+      Method: 3
+      Function: 2
+      Data: 4
+    add_module_prefix: false
+    add_method_class_prefix: true
+    add_member_class_prefix: true
+    descriptive_module_title: false
+
+  pages:
+    - title: Home
+      name: index
+      source: readme.md
+    - title: Bindings
+      contents:
+      - usrv.route.*
+    - title: Serving
+      contents:
+      - usrv.app.*
+    - title: WSGI server
+      source: wsgi_srv.md
+
+  mkdocs_config:
+    site_name: Python usrv project
+    repo_url: https://github.com/Moustikitos/micro-server
+    repo_name: GitHub
+    copyright: Copyright &copy; 2024 THOORENS Bruno - BSD licence
+    extra_css:
+      - style.css
+    theme:
+      name: mkdocs
+      nav_style: light
+      highlightjs: true
+      hljs_languages:
+        - python
+    markdown_extensions:
+      - smarty
+      - def_list
+      - pymdownx.tasklist:
+          custom_checkbox: false
