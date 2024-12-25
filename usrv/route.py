@@ -22,6 +22,7 @@ Options:
 
 import re
 import ssl
+import sys
 import json
 import typing
 import inspect
@@ -273,29 +274,37 @@ if __name__ == "__main__":
     if len(args) == 0:
         # url, headers, data and method loosed
         @bind("/")
-        def test0(a, b=0):
-            return 200, a, b
-        # get url, headers, data and method in args
+        def test0():
+            return 200, "Test page"
 
-        @bind("/<float:c>/vargs")
+        # get url, headers, data and method in args
+        @bind("/vargs")
         def test1(a, b=1, c=0, *args):
             return 200, a, b, c, args
         # get url, headers, data and method in kwargs
 
-        @bind("/<name>/kwargs")
+        @bind("/kwargs")
         def test2(name, a, b=2, **kwargs):
             return 200, name, a, b, kwargs
         # get url, headers, data and method in kwargs
 
-        @bind("/406_error")
-        def test4(a, b=2, *args, **kwargs):
+        @bind("/error_406")
+        def test3(a, b=2, *args, **kwargs):
             return a, b, args, kwargs
+
+        @bind("/error_500")
+        def test4(a, b=2, *args, **kwargs):
+            raise Exception
 
     else:
         for name in args:
             try:
                 importlib.import_module(name)
+            except ModuleNotFoundError:
+                LOG.error(
+                    f"module {name} not found in path:\n"
+                    f"{'\n    '.join(sys.path)}"
+                )
             except ImportError as error:
                 LOG.error("%r\n%s", error, traceback.format_exc())
-
     run(options.host, options.port, options.loglevel)
