@@ -1,4 +1,4 @@
-# `usrv`
+# `usrv`: the lightest python server
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE)
 
@@ -185,7 +185,7 @@ def do_test(a, b, **kwargs):
 
 ## Command line
 
-WSGI server can be launched from command line using python module names for bindings. Modules containing bound functions have to be found by python.
+WSGI server can be launched from command line.
 
 ```bash
 $ python wsgi_srv.py -h
@@ -201,6 +201,8 @@ Options:
   -i HOST, --ip=HOST    ip to run from              [default: 127.0.0.1]
   -p PORT, --port=PORT  port to use                 [default: 5000]
 ```
+
+`BINDINGS` is a space-separated-list of python module names (ie no `*.py` extention) containing boud python functions. Modules containing bound functions have to be in one of `sys.path` folder. Specific folder can be added using `wsgi_srv.path` file.
 
 ## Support this project
 

@@ -128,9 +128,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#
+*.path
 *.exe
 *.pem
-*.json
 *.build/
 *.dist/
 *.onefile-build/
+*.json
