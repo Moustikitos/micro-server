@@ -22,39 +22,52 @@ def wsgi_call(
     http_input = environ["wsgi.input"].read()
     if isinstance(http_input, bytes):
         http_input = http_input.decode("latin-1")
-    # rebuild url
-    url = wsgi_rebuild_url(environ)
     # rebuild headers
     headers = dict(
         [k.replace("HTTP_", "").replace("_", "-").lower(), v]
         for k, v in environ.items() if k.startswith("HTTP_")
     )
     path = urlparse.quote(environ.get('PATH_INFO', ''))
-    for regexp, callback in getattr(cls.ENDPOINTS,method, {}).items():
+    endpoints = getattr(cls, "ENDPOINTS", {})
+    for regexp, callback in getattr(endpoints, method, {}).items():
         if regexp.match(path):
             try:
                 status, *result = callback(
-                    url, headers, http_input or None
+                    wsgi_rebuild_url(environ), headers, http_input or None
                 )
-                if not isinstance(status, int) or \
-                    not (100 <= status < 600):
-                    LOG.error(
-                        f"first value returned by {callback} "
-                        "should be an HTTP response status code"
-                    )
-                    start_response("406", ())
-                    result = None
-                else:
-                    data, content_type = cls.format_response(result)
-                    start_response(
-                        f"{status}", (["Content-type", content_type],)
-                    )(
-                        data if isinstance(data, bytes) else
-                        data.encode("latin-1")
-                    )
+            except TypeError as error:
+                LOG.error(
+                    f"python function {callback} did not return a valid "
+                    f"response:\n{error}\n{traceback.format_exc()}"
+                )
+                start_response("406", ())
+                return b""
             except Exception as error:
-                LOG.error("%r\n%s", error, traceback.format_exc())
+                LOG.error(
+                    f"python function {callback} failed during execution:"
+                    f"\n{error}\n{traceback.format_exc()}"
+                )
                 start_response("500", ())
+                return b""
+
+            if not isinstance(status, int):
+                LOG.error(
+                    f"first value returned by {callback} should be an "
+                    "HTTP response status code (ie integer)"
+                )
+                start_response("406", ())
+                return b""
+            elif status >= 400:
+                start_response(f"{status}", ())
+                return b""
+            else:
+                data, content_type = cls.format_response(result)
+                start_response(
+                    f"{status}", (["Content-type", content_type],)
+                )(
+                    data if isinstance(data, bytes) else
+                    data.encode("latin-1")
+                )
             return b""
     # if for loop exit, then no endpoint found
     start_response("404", ())

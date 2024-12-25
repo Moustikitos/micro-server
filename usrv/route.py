@@ -89,27 +89,43 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                     status, *result = callback(
                         url, headers, http_input or None
                     )
-                    if not isinstance(status, int) or \
-                       not (100 <= status < 600):
-                        LOG.error(
-                            f"first value returned by {callback} "
-                            "should be an HTTP response status code"
-                        )
-                        self.send_error(406)
-                        result = None
-                    else:
-                        self.send_response(status)
-                        result = None
+                except TypeError as error:
+                    LOG.error(
+                        f"python function {callback} did not return a valid "
+                        f"response:\n{error}\n{traceback.format_exc()}"
+                    )
+                    self.send_error(406)
+                    self.end_headers()
                 except Exception as error:
-                    LOG.error("%r\n%s", error, traceback.format_exc())
+                    LOG.error(
+                        f"python function {callback} failed during execution:"
+                        f"\n{error}\n{traceback.format_exc()}"
+                    )
                     self.send_error(500)
-                data, content_type = self.format_response(result)
-                if isinstance(data, str):
-                    data = data.encode("latin-1")
-                self.send_header('Content-Type', content_type)
-                self.send_header('Content-length', len(data))
-                self.end_headers()
-                return self.wfile.write(data)
+                    self.end_headers()
+                    return 0
+
+                if not isinstance(status, int):
+                    LOG.error(
+                        f"first value returned by {callback} should be an "
+                        "HTTP response status code (ie integer)"
+                    )
+                    self.send_error(406)
+                    self.end_headers()
+                    return 0
+                elif status >= 400:
+                    self.send_error(status)
+                    self.end_headers()
+                    return 0
+                else:
+                    data, content_type = self.format_response(result)
+                    if isinstance(data, str):
+                        data = data.encode("latin-1")
+                    self.send_response(status)
+                    self.send_header('Content-Type', content_type)
+                    self.send_header('Content-length', len(data))
+                    self.end_headers()
+                    return self.wfile.write(data)
         # if for loop exit, then no endpoint found
         self.send_error(404)
         self.end_headers()
@@ -270,13 +286,9 @@ if __name__ == "__main__":
             return 200, name, a, b, kwargs
         # get url, headers, data and method in kwargs
 
-        @bind("/<name>/<int:c>/vargs_kwargs")
-        def test3(name, a, b=2, *args, **kwargs):
-            return 200, name, a, b, args, kwargs
-
         @bind("/406_error")
         def test4(a, b=2, *args, **kwargs):
-            return 99, a, b, args, kwargs
+            return a, b, args, kwargs
 
     else:
         for name in args:
