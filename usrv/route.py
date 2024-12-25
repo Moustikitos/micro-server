@@ -25,6 +25,7 @@ import ssl
 import json
 import typing
 import inspect
+import builtins
 import traceback
 
 import urllib.parse as urlparse
@@ -164,7 +165,7 @@ def bind(
         # tn[-1] == "name"
         # args is a dict([('name', type)...])
         markups = OrderedDict(
-            [tn[-1], getattr(__builtins__, tn[0], str)] for tn in [
+            [tn[-1], getattr(builtins, tn[0], str)] for tn in [
                 elem.split(":") for elem in markups
             ]
         )
@@ -278,7 +279,7 @@ if __name__ == "__main__":
 
         @bind("/<float:c>/vargs")
         def test1(a, b=1, c=0, *args):
-            return 200, (a, b, c) + args
+            return 200, a, b, c, args
         # get url, headers, data and method in kwargs
 
         @bind("/<name>/kwargs")
