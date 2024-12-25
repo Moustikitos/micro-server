@@ -2,8 +2,12 @@
 # © THOORENS Bruno
 
 """
-Web Server Gateway Interface for deployment.
-https://www.python.org/dev/peps/pep-3333
+Web Server Gateway Interface (WSGI) for deployment.
+This module provides the WSGI application interface as defined by PEP 3333.
+It includes functions to handle incoming requests, map them to endpoints,
+and format responses accordingly.
+
+For more information, see: https://www.python.org/dev/peps/pep-3333
 """
 
 import traceback
@@ -17,12 +21,25 @@ from http.server import BaseHTTPRequestHandler
 def wsgi_call(
     cls: BaseHTTPRequestHandler, environ: dict, start_response: Callable
 ) -> bytes:
+    """
+    Process an incoming WSGI request and route it to the appropriate endpoint.
+
+    Args:
+        cls: The class handling the request, typically a subclass of
+             BaseHTTPRequestHandler.
+        environ: A dictionary containing CGI-like environment variables
+                 for the request.
+        start_response: A callable to start the HTTP response.
+
+    Returns:
+        bytes: The response body as bytes.
+    """
     method = environ["REQUEST_METHOD"]
-    # read data from wsgi environ and decode it if it is bytes.
+    # Read data from WSGI environment and decode it if it is bytes.
     http_input = environ["wsgi.input"].read()
     if isinstance(http_input, bytes):
         http_input = http_input.decode("latin-1")
-    # rebuild headers
+    # Rebuild headers
     headers = dict(
         [k.replace("HTTP_", "").replace("_", "-").lower(), v]
         for k, v in environ.items() if k.startswith("HTTP_")
@@ -69,15 +86,20 @@ def wsgi_call(
                     data.encode("latin-1")
                 )
             return b""
-    # if for loop exit, then no endpoint found
+    # If the loop exits, then no endpoint was found.
     start_response("404", ())
     return b""
 
 
 def wsgi_rebuild_url(env: dict) -> str:
     """
-    Rebuild full url from WSGI environement according to PEP #3333.
-    https://www.python.org/dev/peps/pep-3333
+    Rebuild the full URL from the WSGI environment according to PEP #3333.
+
+    Args:
+        env: A dictionary containing WSGI environment variables.
+
+    Returns:
+        str: The fully reconstructed URL.
     """
     url = env['wsgi.url_scheme'] + '://'
 

@@ -2,19 +2,22 @@
 # © THOORENS Bruno
 
 """
-This module contains all the utilities to launch a micro server (ie, you get
-and send json) from python lib or WGSI (highly recommended in production mode).
+This module contains all the utilities to launch a micro server from python
+lib. It is not recommended to use it in production mode.
 
 ```bash
 $ python route.py -h
 Usage: route.py [options] BINDINGS...
 
 Options:
+  --version             show program's version number and exit
   -h, --help            show this help message and exit
+  -t THREADS, --threads=THREADS
+                        set thread number           [default: 2]
   -l LOGLEVEL, --log-level=LOGLEVEL
-                        set log level from 1 to 50 [default: 20]
-  -i HOST, --ip=HOST    ip to run from             [default: 127.0.0.1]
-  -p PORT, --port=PORT  port to use                [default: 5000]
+                        set log level from 1 to 100 [default: 20]
+  -i HOST, --ip=HOST    ip to run from              [default: 127.0.0.1]
+  -p PORT, --port=PORT  port to use                 [default: 5000]
 ```
 
 `BINDINGS` is a list of python modules containing python bound functions.
@@ -36,7 +39,9 @@ from collections.abc import Callable
 from collections import OrderedDict, namedtuple
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+# Regex for extracting dynamic segments from URLs.
 MARKUP_PATTERN = re.compile("<([^><]*)>")
+# Named tuple for representing argument specifications.
 FixArgSpec = namedtuple(
     "FixArgSpec", (
         'args', 'varargs', 'varkw', 'defaults', 'kwonlyargs',
@@ -46,33 +51,68 @@ FixArgSpec = namedtuple(
 
 
 class Endpoint:
+    """Placeholder for storing endpoint mappings."""
     pass
 
 
 class EndpointAlreadyDefined(Exception):
+    """Exception raised when an endpoint is already defined."""
     pass
 
 
 class UrlMatchError(Exception):
+    """Exception raised for errors in URL pattern matching."""
     pass
 
 
 class uHTTPRequestHandler(BaseHTTPRequestHandler):
     """
-    Custom HTTP request handler with all HTTP request defined.
+    Custom HTTP request handler that handles HTTP methods dynamically.
+
+    Methods:
+        format_response: Formats the response as JSON.
+        do_: Processes HTTP requests based on registered endpoints.
     """
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Callable:
+        """
+        Dynamically handles HTTP methods like 'do_GET', 'do_POST', etc.
+
+        Args:
+            attr (str): The attribute name.
+
+        Returns:
+            Callable: The dynamic handler function.
+        """
         if attr.startswith("do_"):
             return lambda o=self: \
                 self.__class__.do_(o, method=attr.replace("do_", ""))
         return BaseHTTPRequestHandler.__getattribute__(self, attr)
 
     @staticmethod
-    def format_response(resp):
+    def format_response(resp: typing.Any) -> typing.Tuple[str, str]:
+        """
+        Formats a response as JSON.
+
+        Args:
+            resp (Any): The response data.
+
+        Returns:
+            Tuple[str, str]: The JSON response and its content type.
+        """
         return json.dumps(resp), "application/json"
 
     def do_(self, method: str = "GET") -> int:
+        """
+        Processes an HTTP request and calls the appropriate endpoint.
+
+        Args:
+            method (str): The HTTP method (e.g., "GET", "POST").
+                          Defaults to "GET".
+
+        Returns:
+            int: Status code of the response.
+        """
         length = self.headers.get('content-length')
         http_input = self.rfile.read(int(length) if length is not None else 0)
         if isinstance(http_input, bytes):
@@ -85,6 +125,8 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
         ) % (self.server.server_address + (self.path, ))
         headers = dict([k.lower(), v] for k, v in dict(self.headers).items())
         path = urlparse.urlparse(self.path).path
+
+        # Loop through registered endpoints for the given method.
         for regexp, callback in uHTTPRequestHandler.ENDPOINTS.GET.items():
             if regexp.match(path):
                 try:
@@ -135,7 +177,16 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 # function inspector
-def _get_arg_spec(function) -> FixArgSpec:
+def _get_arg_spec(function: Callable) -> FixArgSpec:
+    """
+    Retrieves the argument specification of a function.
+
+    Args:
+        function (Callable): The function to inspect.
+
+    Returns:
+        FixArgSpec: Named tuple containing function argument details.
+    """
     insp = inspect.getfullargspec(function)
     return FixArgSpec(**dict(insp._asdict(), keywords=insp.varkw))
 
@@ -144,7 +195,18 @@ def bind(
     path: str, methods: list = ["GET"],
     target: BaseHTTPRequestHandler = uHTTPRequestHandler
 ) -> Callable:
-    # normalize path
+    """
+    Binds a function to a specific URL path and HTTP methods.
+
+    Args:
+        path (str): The URL path to bind.
+        methods (list): List of HTTP methods (e.g., ["GET", "POST"]).
+        target (BaseHTTPRequestHandler): The request handler class.
+
+    Returns:
+        Callable: A decorator that binds the function.
+    """
+    # Normalize the path.
     if path != '/':
         if path[0] != '/':
             path = '/' + path
@@ -155,10 +217,16 @@ def bind(
         setattr(target, "ENDPOINTS", Endpoint())
 
     def decorator(function: Callable):
-        # create a regexp replacing all markup by '([^/]*)'
+        """
+        Decorator to register the function as an endpoint.
+
+        Args:
+            function (Callable): The function to register.
+        """
+        # Create a regex replacing all dynamic segments in the path.
         # '/person/<name>/<int:age>' --> '/person/([^/])*/([^/]*)'
         regexp = re.compile(f"^{MARKUP_PATTERN.sub('([^/]*)', path)}$")
-        # extract markups from path
+        # Extract dynamic segments from the path.
         markups = MARKUP_PATTERN.findall(path)
         # markup pattern could be 'name' or 'type:name'
         # 'name'.split(":") == ["name"]
@@ -170,9 +238,9 @@ def bind(
                 elem.split(":") for elem in markups
             ]
         )
-        # inspect function
+        # Inspect the function to get its argument specification.
         arg_spec = _get_arg_spec(function)
-        # create endpoints
+        # Create endpoints for each HTTP method.
         for method in methods:
             # create method dict in ENDPOINTS class of target
             if not hasattr(target.ENDPOINTS, method):
@@ -192,11 +260,26 @@ def callback(
     markups: OrderedDict, regexp: re.Pattern, arg_spec: inspect.FullArgSpec,
 ) -> typing.Any:
     """
+    Handles the execution of the bound function with appropriate arguments.
+    the last 4 parameters are defined by the bind function and stored in the
+    lambda callback.
+
+    Args:
+        url (str): The full URL of the request.
+        headers (dict): The HTTP headers from the request.
+        data (str): The body of the request.
+        function (Callable): The function to execute.
+        markups (OrderedDict): Mappings of path variables to their types.
+        regexp (re.Pattern): Compiled regex for path matching.
+        arg_spec (FixArgSpec): Argument specification of the function.
+
+    Returns:
+        Any: The result of the function execution.
     """
-    # get path and query from url
+    # Parse the URL to extract path and query parameters.
     parse = urlparse.urlparse(url)
     parse_qsl = urlparse.parse_qsl(parse.query)
-    # build parameters
+    # Build parameters from URL path variables.
     params = {}
     try:
         for (name, typ_), value in zip(
@@ -205,7 +288,7 @@ def callback(
             params[name] = typ_(value)
     except Exception as error:
         raise UrlMatchError(f"error occured on parsnig URL:\n{error}")
-    # create a void OrderedDict of positional argument
+    # Create positional arguments with defaults.
     positional = OrderedDict([arg, None] for arg in arg_spec.args)
     # update it with default values if any
     if arg_spec.defaults is not None:
@@ -214,14 +297,13 @@ def callback(
                 zip(arg_spec.args[-len(arg_spec.defaults):], arg_spec.defaults)
             )
         )
-    # update with what is found in url querry string and then in url path so
-    # typing is preserved
+    # Update positional arguments with parameters from the query string.
     parse_qsl = tuple([k, v] for k, v in parse_qsl if k not in params)
     positional.update(
         OrderedDict([k, v] for k, v in params.items() if k in arg_spec.args),
         **OrderedDict([k, v] for k, v in parse_qsl if k in arg_spec.args)
     )
-    # build *args and **kwargs for function call
+    # Build *args and **kwargs for the function call.
     args = tuple(positional.values())
     kwargs = OrderedDict()
     if arg_spec.varkw is not None:
@@ -238,6 +320,14 @@ def callback(
 
 
 def run(host: str = "127.0.0.1", port: int = 5000, loglevel: int = 20) -> None:
+    """
+    Starts the HTTP server.
+
+    Args:
+        host (str): The IP address to bind to. Defaults to "127.0.0.1".
+        port (int): The port to bind to. Defaults to 5000.
+        loglevel (int): Logging level. Defaults to 20.
+    """
     LOG.setLevel(20)
     httpd = HTTPServer((host, port), uHTTPRequestHandler)
     try:
@@ -251,6 +341,7 @@ if __name__ == "__main__":
     import importlib
     from optparse import OptionParser
 
+    # Parse command-line arguments.
     parser = OptionParser(
         usage="usage: %prog [options] BINDINGS...",
         version="%prog 1.0"
@@ -271,32 +362,89 @@ if __name__ == "__main__":
     )
     (options, args) = parser.parse_args()
 
+    # If no modules are specified in the command line, register default routes.
     if len(args) == 0:
-        # url, headers, data and method loosed
+        # Default route for testing without arguments.
         @bind("/")
-        def test0():
+        def test0() -> tuple:
+            """
+            A test endpoint that returns a success message.
+
+            Returns:
+                tuple: HTTP status code and response body.
+            """
             return 200, "Test page"
 
-        # get url, headers, data and method in args
+        # Test route demonstrating *args handling.
         @bind("/vargs")
-        def test1(a, b=1, c=0, *args):
+        def test1(a, b=1, c=0, *args) -> tuple:
+            """
+            A test endpoint to demonstrate positional arguments.
+
+            Args:
+                a: First argument.
+                b: Second argument (default=1).
+                c: Third argument (default=0).
+                *args: Additional positional arguments.
+
+            Returns:
+                tuple: HTTP status code and the received arguments.
+            """
             return 200, a, b, c, args
-        # get url, headers, data and method in kwargs
 
+        # Test route demonstrating **kwargs handling.
         @bind("/kwargs")
-        def test2(name, a, b=2, **kwargs):
-            return 200, name, a, b, kwargs
-        # get url, headers, data and method in kwargs
+        def test2(name, a, b=2, **kwargs) -> tuple:
+            """
+            A test endpoint to demonstrate keyword arguments.
 
+            Args:
+                name: Name parameter.
+                a: Parameter a.
+                b: Parameter b (default=2).
+                **kwargs: Additional keyword arguments.
+
+            Returns:
+                tuple: HTTP status code and the received arguments.
+            """
+            return 200, name, a, b, kwargs
+
+        # Test route demonstrating an error with status 406.
         @bind("/error_406")
-        def test3(a, b=2, *args, **kwargs):
+        def test3(a, b=2, *args, **kwargs) -> tuple:
+            """
+            A test endpoint that returns a 406 error.
+
+            Args:
+                a: First parameter.
+                b: Second parameter (default=2).
+                *args: Additional positional arguments.
+                **kwargs: Additional keyword arguments.
+
+            Returns:
+                tuple: received arguments without status code.
+            """
             return a, b, args, kwargs
 
+        # Test route demonstrating a server-side error.
         @bind("/error_500")
-        def test4(a, b=2, *args, **kwargs):
+        def test4(a, b=2, *args, **kwargs) -> None:
+            """
+            A test endpoint that raises an exception.
+
+            Args:
+                a: First parameter.
+                b: Second parameter (default=2).
+                *args: Additional positional arguments.
+                **kwargs: Additional keyword arguments.
+
+            Raises:
+                Exception: Simulates a server-side error.
+            """
             raise Exception
 
     else:
+        # Dynamically import modules specified in the command line.
         for name in args:
             try:
                 importlib.import_module(name)
@@ -307,4 +455,6 @@ if __name__ == "__main__":
                 )
             except ImportError as error:
                 LOG.error("%r\n%s", error, traceback.format_exc())
+
+    # Start the server with the specified options.
     run(options.host, options.port, options.loglevel)
