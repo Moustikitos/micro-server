@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="None">
+        
+        
+        <link rel="shortcut icon" href="img/favicon.ico">
+        <title>Python usrv project</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/font-awesome.min.css" rel="stylesheet">
+        <link href="css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <link href="style.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body class="homepage">
+        <div class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href=".">Python usrv project</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem active">
+                                <a href="." class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="bindings/" class="nav-link">Bindings</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="serving/" class="nav-link">Serving</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="wsgi-server/" class="nav-link">WSGI server</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" class="nav-link disabled">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="bindings/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/Moustikitos/micro-server/edit/master/docs/index.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#usrv-the-lightest-python-server" class="nav-link">usrv: the lightest python server</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#install" class="nav-link">Install</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#usrvroute" class="nav-link">usrv.route</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#usrvapp" class="nav-link">usrv.app</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#fast-and-simple" class="nav-link">Fast and simple</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#extracting-values-from-url-query" class="nav-link">Extracting values from url query</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#extracting-values-from-url-path" class="nav-link">Extracting values from url path</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#catching-unexpected-values" class="nav-link">Catching unexpected values</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#command-line" class="nav-link">Command line</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#support-this-project" class="nav-link">Support this project</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<h1 id="usrv-the-lightest-python-server"><code>usrv</code>: the lightest python server</h1>
+<p><a href="https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a></p>
+<p>Package (<code>usrv</code>) is a pure python micro server implementation.</p>
+<h2 id="install">Install</h2>
+<pre><code class="language-bash">$ pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
+</code></pre>
+<h2 id="usrvroute"><code>usrv.route</code></h2>
+<p>Bind python code to any HTTP requests easily using decorator syntax.
+<code>route</code> module can be used in standalone mode outside of <code>usrv</code> package.</p>
+<h2 id="usrvapp"><code>usrv.app</code></h2>
+<p>Run a low footprint python server or <a href="https://www.python.org/dev/peps/pep-3333">PEP#3333 WSGI server</a>.</p>
+<pre><code class="language-python">import waitress  # wsgi server for windows
+from usrv import app, route
+
+@route.bind(&quot;/index&quot;)
+def index(**kw):
+    return 200, &quot;Index page&quot;, kw
+
+waitress.serve(app.uApp(), threads=2)
+</code></pre>
+<h2 id="fast-and-simple">Fast and simple</h2>
+<p>Let&rsquo;s create a server with <code>/test</code> endpoint in a python module named <code>test.py</code>:</p>
+<pre><code class="language-python">from usrv import route, app
+
+@route.bind(&quot;/test&quot;)
+def do_test(a, b):
+    # write some code and return something
+    return 200, a, b
+
+def launchApp():
+    route.run(host=&quot;127.0.0.1&quot;, port=5000, loglevel=20)
+</code></pre>
+<p><strong>Bound functions have to return a tuple with a valid HTTP status code as first item</strong>.
+Server can be run from python interpreter:</p>
+<pre><code class="language-python">&gt;&gt;&gt; import test
+&gt;&gt;&gt; test.launchApp()
+INFO:usrv.srv:listening on 127.0.0.1:5000
+CTRL+C to stop...
+</code></pre>
+<p>Now going to <code>http://127.0.0.1:5000/test</code> with any browser gives:</p>
+<pre><code class="language-json">[null, null]
+</code></pre>
+<h2 id="extracting-values-from-url-query">Extracting values from url query</h2>
+<p><code>[null, null]</code> above are the returned values <code>a</code> and <code>b</code> from <code>do_test</code> function. Values can be extracted from query string. Let&rsquo;s type <code>http://127.0.0.1:5000/test?b=12&amp;a=Paris</code> in the address bar:</p>
+<pre><code class="language-json">[&quot;Paris&quot;, &quot;12&quot;]
+</code></pre>
+<p>Returned value from query are <code>str</code> only. Unexpected values are ignored but there is a <a href="#catching-unexpected-values">convenient way to catch them</a>.</p>
+<h2 id="extracting-values-from-url-path">Extracting values from url path</h2>
+<p>Values can also be extracted from url path with or without a typing precision.</p>
+<pre><code class="language-python">@srv.bind(&quot;/&lt;int:b&gt;/&lt;a&gt;&quot;)
+def do_test(a, b):
+    # write some code and return something
+    return 200, a, b
+</code></pre>
+<p>This binding creates multiple endpoint possibilities. Let&rsquo;s try <code>http://127.0.0.1:5000/5/test</code>:</p>
+<pre><code class="language-json">[&quot;test&quot;, 5]
+</code></pre>
+<p>Values from url can be overrided by thoses from query&hellip; <code>http://127.0.0.1:5000/5/test?a=2&amp;b=6</code>:</p>
+<pre><code class="language-json">[&quot;2&quot;, &quot;6&quot;]
+</code></pre>
+<blockquote>
+<p>It can only be overrided with <code>str</code> type values.</p>
+</blockquote>
+<h2 id="catching-unexpected-values">Catching unexpected values</h2>
+<p>Using varargs or/and keywordargs is a convenient way to catch unexpected values from url query and HTTP context. HTTP Context is defined an headers and data (HTTP requests with body).</p>
+<p>When HTTP context is catched by <code>*args</code>, unexpected values from query string are appended next.</p>
+<p>Url used for this chapter <code>http://127.0.0.1:5000/test?b=12&amp;a=Paris&amp;unexpected=there</code>.</p>
+<h3 id="varargs-args">Varargs (<code>*args</code>)</h3>
+<pre><code class="language-python">@srv.bind(&quot;/test&quot;)
+def do_test(a, b, *args):
+    # write some code and return something
+    # args is a tuple
+    return 200, a, b, args
+</code></pre>
+<blockquote>
+<p>With <code>*args</code> method, HTTP headers and data will be postionned at the end of <code>json</code> response</p>
+</blockquote>
+<pre><code class="language-json">[
+  &quot;Paris&quot;,
+  &quot;12&quot;,
+  &quot;there&quot;,
+  {
+    &quot;host&quot;: &quot;127.0.0.1:5000&quot;,
+    &quot;connection&quot;: &quot;keep-alive&quot;,
+    &quot;sec-ch-ua&quot;: &quot;\&quot;Brave\&quot;;v=\&quot;131\&quot;, \&quot;Chromium\&quot;;v=\&quot;131\&quot;, \&quot;Not_A Brand\&quot;;v=\&quot;24\&quot;&quot;,
+    &quot;sec-ch-ua-mobile&quot;: &quot;?0&quot;,
+    &quot;sec-ch-ua-platform&quot;: &quot;\&quot;Windows\&quot;&quot;,
+    &quot;upgrade-insecure-requests&quot;: &quot;1&quot;,
+    &quot;user-agent&quot;: &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36&quot;,
+    &quot;accept&quot;: &quot;text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8&quot;,
+    &quot;sec-gpc&quot;: &quot;1&quot;,
+    &quot;accept-language&quot;: &quot;fr-FR,fr&quot;,
+    &quot;sec-fetch-site&quot;: &quot;none&quot;,
+    &quot;sec-fetch-mode&quot;: &quot;navigate&quot;,
+    &quot;sec-fetch-user&quot;: &quot;?1&quot;,
+    &quot;sec-fetch-dest&quot;: &quot;document&quot;,
+    &quot;accept-encoding&quot;: &quot;gzip, deflate, br, zstd&quot;
+  },
+  null
+]
+</code></pre>
+<h3 id="keywordargs-kwargs">Keywordargs (<code>**kwargs</code>)</h3>
+<pre><code class="language-python">@srv.bind(&quot;/test&quot;)
+def do_test(a, b, **kwargs):
+    # write some code and return something
+    # kwargs is a dict
+    return 200, a, b, kwargs
+</code></pre>
+<blockquote>
+<p>using <code>**kwargs</code> is the recommended way to retrieve unexpected values by names. Unexpected mapping is positionned at the end of <code>json</code> response.</p>
+</blockquote>
+<pre><code class="language-json">[
+  &quot;Paris&quot;,
+  &quot;12&quot;,
+  {
+    &quot;unexpected&quot;: &quot;there&quot;,
+    &quot;headers&quot;: {
+      &quot;host&quot;: &quot;127.0.0.1:5000&quot;,
+      &quot;connection&quot;: &quot;keep-alive&quot;,
+      &quot;sec-ch-ua&quot;: &quot;\&quot;Brave\&quot;;v=\&quot;131\&quot;, \&quot;Chromium\&quot;;v=\&quot;131\&quot;, \&quot;Not_A Brand\&quot;;v=\&quot;24\&quot;&quot;,
+      &quot;sec-ch-ua-mobile&quot;: &quot;?0&quot;,
+      &quot;sec-ch-ua-platform&quot;: &quot;\&quot;Windows\&quot;&quot;,
+      &quot;upgrade-insecure-requests&quot;: &quot;1&quot;,
+      &quot;user-agent&quot;: &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36&quot;,
+      &quot;accept&quot;: &quot;text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8&quot;,
+      &quot;sec-gpc&quot;: &quot;1&quot;,
+      &quot;accept-language&quot;: &quot;fr-FR,fr&quot;,
+      &quot;sec-fetch-site&quot;: &quot;none&quot;,
+      &quot;sec-fetch-mode&quot;: &quot;navigate&quot;,
+      &quot;sec-fetch-user&quot;: &quot;?1&quot;,
+      &quot;sec-fetch-dest&quot;: &quot;document&quot;,
+      &quot;accept-encoding&quot;: &quot;gzip, deflate, br, zstd&quot;
+    },
+    &quot;data&quot;: null,
+  }
+]
+</code></pre>
+<h2 id="command-line">Command line</h2>
+<p>WSGI server can be launched from command line.</p>
+<pre><code class="language-bash">$ python wsgi_srv.py -h
+Usage: wsgi_srv.py [options] BINDINGS...
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -t THREADS, --threads=THREADS
+                        set thread number           [default: 2]
+  -l LOGLEVEL, --log-level=LOGLEVEL
+                        set log level from 1 to 100 [default: 20]
+  -i HOST, --ip=HOST    ip to run from              [default: 127.0.0.1]
+  -p PORT, --port=PORT  port to use                 [default: 5000]
+</code></pre>
+<p><code>BINDINGS</code> is a space-separated-list of python module names (ie no <code>*.py</code> extention) containing boud python functions. Modules containing bound functions have to be in one of <code>sys.path</code> folder. Specific folder can be added using <code>wsgi_srv.path</code> file.</p>
+<h2 id="support-this-project">Support this project</h2>
+<p><a href="https://liberapay.com/Toons/donate"><img alt="Liberapay receiving" src="https://img.shields.io/liberapay/goal/Toons?logo=liberapay" /></a>
+<a href="https://paypal.me/toons"><img alt="Paypal me" src="https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&amp;logoColor=white" /></a>
+<a href="https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png"><img alt="Bitcoin" src="https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin" /></a></p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+                <p>Copyright &copy; 2024 THOORENS Bruno - BSD licence</p>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="js/jquery-3.6.0.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script>
+            var base_url = ".",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="js/base.js"></script>
+        <script src="search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
+
+<!--
+MkDocs version : 1.5.3
+Build Date UTC : 2024-12-25 23:18:07.392875+00:00
+-->

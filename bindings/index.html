@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Bindings - Python usrv project</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <link href="../style.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="..">Python usrv project</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Bindings</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../serving/" class="nav-link">Serving</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../wsgi-server/" class="nav-link">WSGI server</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href=".." class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../serving/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/Moustikitos/micro-server/edit/master/docs/bindings.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#route" class="nav-link">route</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#endpoint-objects" class="nav-link">Endpoint Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#endpointalreadydefined-objects" class="nav-link">EndpointAlreadyDefined Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#urlmatcherror-objects" class="nav-link">UrlMatchError Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#uhttprequesthandler-objects" class="nav-link">uHTTPRequestHandler Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#bind" class="nav-link">bind</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#callback" class="nav-link">callback</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#run" class="nav-link">run</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<p><a id="usrv.route"></a></p>
+<h1 id="route">route</h1>
+<p>This module contains all the utilities to launch a micro server from python
+lib. It is not recommended to use it in production mode.</p>
+<pre><code class="language-bash">$ python route.py -h
+Usage: route.py [options] BINDINGS...
+
+Options:
+  --version             show program's version number and exit
+  -h, --help            show this help message and exit
+  -t THREADS, --threads=THREADS
+                        set thread number           [default: 2]
+  -l LOGLEVEL, --log-level=LOGLEVEL
+                        set log level from 1 to 100 [default: 20]
+  -i HOST, --ip=HOST    ip to run from              [default: 127.0.0.1]
+  -p PORT, --port=PORT  port to use                 [default: 5000]
+</code></pre>
+<p><code>BINDINGS</code> is a list of python modules containing python bound functions.</p>
+<p><a id="usrv.route.Endpoint"></a></p>
+<h2 id="endpoint-objects">Endpoint Objects</h2>
+<pre><code class="language-python">class Endpoint()
+</code></pre>
+<p>Placeholder for storing endpoint mappings.</p>
+<p><a id="usrv.route.EndpointAlreadyDefined"></a></p>
+<h2 id="endpointalreadydefined-objects">EndpointAlreadyDefined Objects</h2>
+<pre><code class="language-python">class EndpointAlreadyDefined(Exception)
+</code></pre>
+<p>Exception raised when an endpoint is already defined.</p>
+<p><a id="usrv.route.UrlMatchError"></a></p>
+<h2 id="urlmatcherror-objects">UrlMatchError Objects</h2>
+<pre><code class="language-python">class UrlMatchError(Exception)
+</code></pre>
+<p>Exception raised for errors in URL pattern matching.</p>
+<p><a id="usrv.route.uHTTPRequestHandler"></a></p>
+<h2 id="uhttprequesthandler-objects">uHTTPRequestHandler Objects</h2>
+<pre><code class="language-python">class uHTTPRequestHandler(BaseHTTPRequestHandler)
+</code></pre>
+<p>Custom HTTP request handler that handles HTTP methods dynamically.</p>
+<p><strong>Methods</strong>:</p>
+<ul>
+<li><code>format_response</code> - Formats the response as JSON.</li>
+<li><code>do_</code> - Processes HTTP requests based on registered endpoints.</li>
+</ul>
+<p><a id="usrv.route.uHTTPRequestHandler.__getattr__"></a></p>
+<h3 id="uhttprequesthandler__getattr__">uHTTPRequestHandler.__getattr__</h3>
+<pre><code class="language-python">def __getattr__(attr: str) -&gt; Callable
+</code></pre>
+<p>Dynamically handles HTTP methods like &lsquo;do_GET&rsquo;, &lsquo;do_POST&rsquo;, etc.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>attr</code> <em>str</em> - The attribute name.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Callable</code> - The dynamic handler function.</li>
+</ul>
+<p><a id="usrv.route.uHTTPRequestHandler.format_response"></a></p>
+<h3 id="uhttprequesthandlerformat_response">uHTTPRequestHandler.format_response</h3>
+<pre><code class="language-python">@staticmethod
+def format_response(resp: typing.Any) -&gt; typing.Tuple[str, str]
+</code></pre>
+<p>Formats a response as JSON.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>resp</code> <em>Any</em> - The response data.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<p>Tuple[str, str]: The JSON response and its content type.</p>
+<p><a id="usrv.route.uHTTPRequestHandler.do_"></a></p>
+<h3 id="uhttprequesthandlerdo_">uHTTPRequestHandler.do_</h3>
+<pre><code class="language-python">def do_(method: str = &quot;GET&quot;) -&gt; int
+</code></pre>
+<p>Processes an HTTP request and calls the appropriate endpoint.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>method</code> <em>str</em> - The HTTP method (e.g., &ldquo;GET&rdquo;, &ldquo;POST&rdquo;).
+  Defaults to &ldquo;GET&rdquo;.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>int</code> - Status code of the response.</li>
+</ul>
+<p><a id="usrv.route.bind"></a></p>
+<h2 id="bind">bind</h2>
+<pre><code class="language-python">def bind(path: str,
+         methods: list = [&quot;GET&quot;],
+         target: BaseHTTPRequestHandler = uHTTPRequestHandler) -&gt; Callable
+</code></pre>
+<p>Binds a function to a specific URL path and HTTP methods.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>path</code> <em>str</em> - The URL path to bind.</li>
+<li><code>methods</code> <em>list</em> - List of HTTP methods (e.g., [&ldquo;GET&rdquo;, &ldquo;POST&rdquo;]).</li>
+<li><code>target</code> <em>BaseHTTPRequestHandler</em> - The request handler class.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Callable</code> - A decorator that binds the function.</li>
+</ul>
+<p><a id="usrv.route.callback"></a></p>
+<h2 id="callback">callback</h2>
+<pre><code class="language-python">def callback(url: str, headers: dict, data: str, function: Callable,
+             markups: OrderedDict, regexp: re.Pattern,
+             arg_spec: inspect.FullArgSpec) -&gt; typing.Any
+</code></pre>
+<p>Handles the execution of the bound function with appropriate arguments.
+the last 4 parameters are defined by the bind function and stored in the
+lambda callback.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>url</code> <em>str</em> - The full URL of the request.</li>
+<li><code>headers</code> <em>dict</em> - The HTTP headers from the request.</li>
+<li><code>data</code> <em>str</em> - The body of the request.</li>
+<li><code>function</code> <em>Callable</em> - The function to execute.</li>
+<li><code>markups</code> <em>OrderedDict</em> - Mappings of path variables to their types.</li>
+<li><code>regexp</code> <em>re.Pattern</em> - Compiled regex for path matching.</li>
+<li><code>arg_spec</code> <em>FixArgSpec</em> - Argument specification of the function.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Any</code> - The result of the function execution.</li>
+</ul>
+<p><a id="usrv.route.run"></a></p>
+<h2 id="run">run</h2>
+<pre><code class="language-python">def run(host: str = &quot;127.0.0.1&quot;, port: int = 5000, loglevel: int = 20) -&gt; None
+</code></pre>
+<p>Starts the HTTP server.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>host</code> <em>str</em> - The IP address to bind to. Defaults to &ldquo;127.0.0.1&rdquo;.</li>
+<li><code>port</code> <em>int</em> - The port to bind to. Defaults to 5000.</li>
+<li><code>loglevel</code> <em>int</em> - Logging level. Defaults to 20.</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+                <p>Copyright &copy; 2024 THOORENS Bruno - BSD licence</p>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
