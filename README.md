@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE)
 
-Micro server package (`usrv`) is a pure python JSON server implementation.
+Package (`usrv`) is a pure python micro server implementation.
 
 ## Install
 
@@ -185,7 +185,7 @@ def do_test(a, b, **kwargs):
 
 ## Command line
 
-Server can be launched from command line using python module names for bindings. Modules containing bound functions have to be found by python. This is not recomended for production.
+WSGI server can be launched from command line using python module names for bindings. Modules containing bound functions have to be found by python.
 
 ```bash
 $ python wsgi_srv.py -h

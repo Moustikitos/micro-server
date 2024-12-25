@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # © THOORENS Bruno
 
+import os
 import sys
 import waitress
 import importlib
@@ -49,23 +50,32 @@ if len(args) == 0:
     @route.bind("/kwargs")
     def test2(name, a, b=2, **kwargs):
         return 200, name, a, b, kwargs
-    # get url, headers, data and method in kwargs
 
+    # HTTP error 406 example
     @route.bind("/error_406")
     def test3(a, b=2, *args, **kwargs):
         return a, b, args, kwargs
 
+    # HTTP error 500 example
     @route.bind("/error_500")
     def test4(a, b=2, *args, **kwargs):
         raise Exception
 
 else:
+    executable = os.path.splitext(os.path.basename(__file__))[0]
+    if os.path.exists(f"{executable}.path"):
+        with open(f"{executable}.path", "r") as pathes:
+            sys.path.extend([
+                os.path.normpath(path.strip())
+                for path in pathes.read().split("\n")
+            ])
+
     for name in args:
         try:
             importlib.import_module(name)
         except ModuleNotFoundError:
             LOG.error(
-                f"module {name} not found in path:\n{'\n    '.join(sys.path)}"
+                f"module {name} not found in path:{'\n    '.join(sys.path)}"
             )
         except ImportError as error:
             LOG.error("%r\n%s", error, traceback.format_exc())
