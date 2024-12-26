@@ -99,7 +99,8 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
         data = None
     else:
         query = None
-        data = encoder(**kwargs)
+        data = encoder(kwargs)
+        data = data if isinstance(data, bytes) else data.encode("latin-1")
 
     headers["Content-Type"] = \
         "application/x-www-form-urlencoded" if encoder == urlencode else \
