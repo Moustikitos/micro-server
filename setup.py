@@ -23,7 +23,7 @@ kw = {
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
     "packages": ["usrv"],
-    "install_requires": [],
+    "install_requires": ["waitress"],
     "license": "Cpyright 2020 - 2021 THOORENS Bruno",
     "classifiers": [
         "Development Status :: 3 - Alpha",
