@@ -39,6 +39,9 @@ renderer:
     - title: Serving
       contents:
       - usrv.app.*
+    - title: Request
+      contents:
+      - usrv.req.*
     - title: WSGI server
       source: wsgi_srv.md
 
