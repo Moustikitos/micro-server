@@ -1,6 +1,45 @@
 # -*- coding: utf-8 -*-
 # © THOORENS Bruno
 
+"""
+# HTTP Client Module
+
+This module provides a flexible and extensible framework for building, sending,
+and managing HTTP requests and responses. It includes support for dynamic
+endpoints, SSL configuration, and content decoding based on MIME types.
+
+## Classes
+  - Endpoint: Represents an HTTP endpoint with dynamic attribute handling and
+    customizable request methods.
+
+## Functions
+  - build_request: Constructs HTTP requests with specified parameters and
+    headers.
+  - manage_response: Parses and decodes HTTP responses based on their MIME
+    types.
+
+## Constants
+  - CONTEXT: SSL context with disabled hostname verification.
+  - DECODERS: Dictionary mapping MIME types to their respective parsers.
+  - OPENER: Global HTTP request opener.
+
+## Endpoints
+Predefined instances of the `Endpoint` class for standard HTTP methods:
+  - CONNECT
+  - GET
+  - HEAD
+  - OPTION
+  - PATCH
+  - POST
+  - PUT
+  - TRACE
+  - DELETE
+
+This module is designed to handle common HTTP operations in a clean and
+reusable manner, with dynamic endpoint resolution and robust response
+management.
+"""
+
 import re
 import ssl
 import json
@@ -38,6 +77,18 @@ OPENER.add_handler(FileHandler())
 
 
 def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
+    """
+    Builds an HTTP request object.
+
+    Args:
+        method (str): HTTP method (e.g., 'GET', 'POST'). Defaults to 'GET'.
+        path (str): URL path for the request. Defaults to '/'.
+        **kwargs: Additional keyword arguments for query parameters, headers,
+            and data.
+
+    Returns:
+        Request: Configured HTTP request object.
+    """
     encoder = kwargs.pop("encoder", urlencode)
     peer = kwargs.pop("peer", False) or Endpoint.peer
     headers = kwargs.pop("headers", {"User-Agent": "Python/usrv"})
@@ -63,6 +114,15 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
 
 
 def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
+    """
+    Parses the HTTP response.
+
+    Args:
+        resp (HTTPResponse): HTTP response object.
+
+    Returns:
+        typing.Union[dict, str]: Decoded response content.
+    """
     content_type = resp.headers.get("content-type").lower()
     text = resp.read()
     text = text.decode(resp.headers.get_content_charset("latin-1")) \
@@ -75,6 +135,15 @@ def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
 
 
 class Endpoint:
+    """
+    Represents an HTTP endpoint with dynamic attribute handling.
+
+    Attributes:
+        startswith_ (re.Pattern): Pattern to match internal attributes.
+        timeout (int): Default timeout for requests.
+        opener (OpenerDirector): Opener to handle HTTP requests.
+        peer (str): Base URL for the endpoint.
+    """
 
     startswith_ = re.compile(r"^_[0-9].*")
     timeout = 5
@@ -85,6 +154,14 @@ class Endpoint:
         self, master: typing.Any = None, name: str = "",
         method: Callable = build_request
     ):
+        """
+        Initializes an Endpoint instance.
+
+        Args:
+            master (typing.Any): Parent endpoint.
+            name (str): Name of the current endpoint.
+            method (Callable): Request-building method.
+        """
         if master is None:
             self.path = name
         else:
@@ -92,6 +169,15 @@ class Endpoint:
         self.method = method
 
     def __getattr__(self, attr: str):
+        """
+        Dynamically resolves sub-endpoints.
+
+        Args:
+            attr (str): Attribute name.
+
+        Returns:
+            Endpoint: New sub-endpoint instance.
+        """
         try:
             return Endpoint.__getattribute__(self, attr)
         except AttributeError:
@@ -100,10 +186,28 @@ class Endpoint:
             return Endpoint(self, attr, self.method)
 
     def __call__(self, **kwargs):
+        """
+        Executes the endpoint's method with provided arguments.
+
+        Args:
+            **kwargs: Parameters for the HTTP request.
+
+        Returns:
+            Request: Configured HTTP request.
+        """
         return self.method(self.path, **kwargs)
 
     @staticmethod
     def connect(peer: str):
+        """
+        Tests connection to a peer endpoint and store it if success.
+
+        Args:
+            peer (str): Peer URL to test.
+
+        Returns:
+            typing.Union[int, bool]: HTTP status code or False on failure.
+        """
         try:
             res = OPENER.open(
                 build_request("HEAD", peer=peer), timeout=Endpoint.timeout
@@ -116,6 +220,7 @@ class Endpoint:
         return False
 
 
+# HTTP method endpoints
 CONNECT = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
