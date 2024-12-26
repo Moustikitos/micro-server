@@ -1,9 +1,6 @@
 # -*- coding:utf-8 -*-
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
 
 
 with open("VERSION") as f1, open("README.md") as f2:
@@ -39,6 +36,11 @@ kw = {
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
     ],
+    "entry_points": {
+        "console_scripts": [
+            "usrv_serve = wsgi_srv"
+        ]
+    }
 }
 
 setup(**kw)
