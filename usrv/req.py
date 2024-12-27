@@ -80,6 +80,8 @@ on/usrv', 'content-type': 'application/json', 'connection': 'close'}, None]
 [None, None, {'headers': {'accept-encoding': 'identity', 'host': '127.0.0.1:50\
 00', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connect\
 ion': 'close'}, 'data': None}]
+>>> req.POST.api.endpoint()
+[]
 ```
 """
 
@@ -324,7 +326,7 @@ class Endpoint:
         return False
 
 
-# HTTP method endpoints
+# HTTP method root endpoints
 CONNECT = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(

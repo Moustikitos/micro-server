@@ -19,7 +19,7 @@ kw = {
     "download_url":
         "https://github.com/Moustikitos/micro-server/archive/master.zip",
     "include_package_data": True,
-    "description": "Low footprint HTTP stuff with JSON",
+    "description": "Pure python micro web framework",
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
     "packages": ["usrv"],
