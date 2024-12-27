@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Request - Python usrv project</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <link href="../style.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="..">Python usrv project</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../bindings/" class="nav-link">Bindings</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../serving/" class="nav-link">Serving</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Request</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../wsgi-server/" class="nav-link">WSGI server</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../serving/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" href="../wsgi-server/" class="nav-link">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/Moustikitos/micro-server/edit/master/docs/request.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#req" class="nav-link">req</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#classes" class="nav-link">Classes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#functions" class="nav-link">Functions</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#constants" class="nav-link">Constants</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#endpoints" class="nav-link">Endpoints</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#build_request" class="nav-link">build_request</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#manage_response" class="nav-link">manage_response</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#requestcache-objects" class="nav-link">RequestCache Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#endpoint-objects" class="nav-link">Endpoint Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<p><a id="usrv.req"></a></p>
+<h1 id="req">req</h1>
+<p><strong>HTTP Client Module</strong></p>
+<p>This module provides a flexible and extensible framework for building, sending,
+and managing HTTP requests and responses. It includes support for dynamic
+endpoints, SSL configuration, and content decoding based on MIME types.</p>
+<h2 id="classes">Classes</h2>
+<ul>
+<li>RequestCache: a caching service for python HTTP Request.</li>
+<li>Endpoint: Represents an HTTP endpoint with dynamic attribute handling and
+    customizable request methods.</li>
+</ul>
+<h2 id="functions">Functions</h2>
+<ul>
+<li>build_request: Constructs HTTP requests with specified parameters and
+    headers.</li>
+<li>manage_response: Parses and decodes HTTP responses based on their MIME
+    types.</li>
+</ul>
+<h2 id="constants">Constants</h2>
+<ul>
+<li>CONTEXT: SSL context with disabled hostname verification.</li>
+<li>DECODERS: Dictionary mapping MIME types to their respective parsers.</li>
+<li>OPENER: Global HTTP request opener.</li>
+</ul>
+<h2 id="endpoints">Endpoints</h2>
+<p>Predefined instances of the <code>Endpoint</code> class for standard HTTP methods:
+  - CONNECT
+  - GET
+  - HEAD
+  - OPTION
+  - PATCH
+  - POST
+  - PUT
+  - TRACE
+  - DELETE</p>
+<p>This module is designed to handle common HTTP operations in a clean and
+reusable manner, with dynamic endpoint resolution and robust response
+management.</p>
+<p><strong>Let&rsquo;s run a micro server:</strong></p>
+<pre><code class="language-python">from usrv import route
+
+# allow req.Endpoint.connect
+@route.bind(&quot;/&quot;, methods=[&quot;HEAD&quot;])
+def base():
+    return 200,
+
+@route.bind(&quot;/index&quot;)
+def index(*args):
+    return (200, ) + args
+
+@route.bind(&quot;/api/endpoint&quot;, methods=[&quot;GET&quot;, &quot;POST&quot;])
+def endpoit(a, b, **kwargs):
+    method = kwargs[&quot;method&quot;]
+    if method == &quot;POST&quot;:
+        return 202,
+    elif method == &quot;GET&quot;:
+        return 200, a, b, kwargs
+    else:
+        return 404,
+
+route.run(host='127.0.0.1', port=5000)
+</code></pre>
+<p><strong>execute simple requests:</strong></p>
+<pre><code class="language-python">&gt;&gt;&gt; from usrv import req
+&gt;&gt;&gt; req.Endpoint.connect(&quot;http://127.0.0.1:5000&quot;)
+200
+&gt;&gt;&gt; req.GET.index()
+[{'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, None]
+&gt;&gt;&gt; req.GET.api.endpoint()
+[None, None, {'headers': {'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, 'data': None}]
+</code></pre>
+<p><a id="usrv.req.build_request"></a></p>
+<h2 id="build_request">build_request</h2>
+<pre><code class="language-python">def build_request(method: str = &quot;GET&quot;, path: str = &quot;/&quot;, **kwargs) -&gt; Request
+</code></pre>
+<p>Builds an HTTP request object.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>method</code> <em>str</em> - HTTP method (e.g., &lsquo;GET&rsquo;, &lsquo;POST&rsquo;). Defaults to &lsquo;GET&rsquo;.</li>
+<li><code>path</code> <em>str</em> - URL path for the request. Defaults to &lsquo;/&rsquo;.</li>
+<li><code>**kwargs</code> - Additional keyword arguments for query parameters, headers,
+  and data.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Request</code> - Configured HTTP request object.</li>
+</ul>
+<p><a id="usrv.req.manage_response"></a></p>
+<h2 id="manage_response">manage_response</h2>
+<pre><code class="language-python">def manage_response(resp: HTTPResponse) -&gt; typing.Union[dict, str]
+</code></pre>
+<p>Parses the HTTP response.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>resp</code> <em>HTTPResponse</em> - HTTP response object.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<p>typing.Union[dict, str]: Decoded response content.</p>
+<p><a id="usrv.req.RequestCache"></a></p>
+<h2 id="requestcache-objects">RequestCache Objects</h2>
+<pre><code class="language-python">class RequestCache()
+</code></pre>
+<p>Cache manager for HTTP Request objects.</p>
+<p><a id="usrv.req.RequestCache.__init__"></a></p>
+<h3 id="requestcache__init__">RequestCache.__init__</h3>
+<pre><code class="language-python">def __init__(max_size: int = 100, ttl: int = 300)
+</code></pre>
+<p>Initialize the cache.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>max_size</code> <em>int</em> - Maximum number of entries in the cache.</li>
+<li><code>ttl</code> <em>int</em> - Time-to-live for cache entries in seconds.</li>
+</ul>
+<p><a id="usrv.req.RequestCache.generate_key"></a></p>
+<h3 id="requestcachegenerate_key">RequestCache.generate_key</h3>
+<pre><code class="language-python">@staticmethod
+def generate_key(method: str, path: str, **kwargs) -&gt; str
+</code></pre>
+<p>Generate a unique cache key for a request.</p>
+<p><a id="usrv.req.RequestCache.get"></a></p>
+<h3 id="requestcacheget">RequestCache.get</h3>
+<pre><code class="language-python">def get(key: str) -&gt; typing.Union[None, typing.Tuple[int, Request]]
+</code></pre>
+<p>Retrieve an entry from the cache.</p>
+<p><a id="usrv.req.RequestCache.set"></a></p>
+<h3 id="requestcacheset">RequestCache.set</h3>
+<pre><code class="language-python">def set(key: str, request: Request) -&gt; None
+</code></pre>
+<p>Add an entry to the cache.</p>
+<p><a id="usrv.req.Endpoint"></a></p>
+<h2 id="endpoint-objects">Endpoint Objects</h2>
+<pre><code class="language-python">class Endpoint()
+</code></pre>
+<p>Represents an HTTP endpoint with dynamic attribute handling.</p>
+<p><strong>Attributes</strong>:</p>
+<ul>
+<li><code>startswith_</code> <em>re.Pattern</em> - Pattern to match internal attributes.</li>
+<li><code>timeout</code> <em>int</em> - Default timeout for requests.</li>
+<li><code>opener</code> <em>OpenerDirector</em> - Opener to handle HTTP requests.</li>
+<li><code>peer</code> <em>str</em> - Base URL for the endpoint.</li>
+</ul>
+<p><a id="usrv.req.Endpoint.__init__"></a></p>
+<h3 id="endpoint__init__">Endpoint.__init__</h3>
+<pre><code class="language-python">def __init__(master: typing.Any = None,
+             name: str = &quot;&quot;,
+             method: Callable = manage_response) -&gt; None
+</code></pre>
+<p>Initializes an Endpoint instance.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>master</code> <em>typing.Any</em> - Parent endpoint.</li>
+<li><code>name</code> <em>str</em> - Name of the current endpoint.</li>
+<li><code>method</code> <em>Callable</em> - Request-building method.</li>
+</ul>
+<p><a id="usrv.req.Endpoint.__getattr__"></a></p>
+<h3 id="endpoint__getattr__">Endpoint.__getattr__</h3>
+<pre><code class="language-python">def __getattr__(attr: str) -&gt; typing.Any
+</code></pre>
+<p>Dynamically resolves sub-endpoints.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>attr</code> <em>str</em> - Attribute name.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Endpoint</code> - New sub-endpoint instance.</li>
+</ul>
+<p><a id="usrv.req.Endpoint.__call__"></a></p>
+<h3 id="endpoint__call__">Endpoint.__call__</h3>
+<pre><code class="language-python">def __call__(**kwargs) -&gt; typing.Any
+</code></pre>
+<p>Executes the endpoint&rsquo;s method with provided arguments.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>**kwargs</code> - Parameters for the HTTP request.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>typing.Any</code> - value returned by <code>method</code> attribute.</li>
+</ul>
+<p><a id="usrv.req.Endpoint.connect"></a></p>
+<h3 id="endpointconnect">Endpoint.connect</h3>
+<pre><code class="language-python">@staticmethod
+def connect(peer: str) -&gt; typing.Union[int, bool]
+</code></pre>
+<p>Tests connection to a peer endpoint and store it if success.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>peer</code> <em>str</em> - Peer URL to test.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<p>typing.Union[int, bool]: HTTP status code or False on failure.</p></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+                <p>Copyright &copy; 2024 THOORENS Bruno - BSD licence</p>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

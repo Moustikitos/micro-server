@@ -42,6 +42,9 @@
                                 <a href="../serving/" class="nav-link">Serving</a>
                             </li>
                             <li class="navitem">
+                                <a href="../request/" class="nav-link">Request</a>
+                            </li>
+                            <li class="navitem">
                                 <a href="../wsgi-server/" class="nav-link">WSGI server</a>
                             </li>
                         </ul>
@@ -222,7 +225,7 @@ def format_response(resp: typing.Any) -&gt; typing.Tuple[str, str]
 <p><a id="usrv.route.callback"></a></p>
 <h2 id="callback">callback</h2>
 <pre><code class="language-python">def callback(url: str, headers: dict, data: str, function: Callable,
-             markups: OrderedDict, regexp: re.Pattern,
+             method: str, markups: OrderedDict, regexp: re.Pattern,
              arg_spec: inspect.FullArgSpec) -&gt; typing.Any
 </code></pre>
 <p>Handles the execution of the bound function with appropriate arguments.
@@ -234,6 +237,7 @@ lambda callback.</p>
 <li><code>headers</code> <em>dict</em> - The HTTP headers from the request.</li>
 <li><code>data</code> <em>str</em> - The body of the request.</li>
 <li><code>function</code> <em>Callable</em> - The function to execute.</li>
+<li><code>method</code> <em>str</em> - The HTTP command used.</li>
 <li><code>markups</code> <em>OrderedDict</em> - Mappings of path variables to their types.</li>
 <li><code>regexp</code> <em>re.Pattern</em> - Compiled regex for path matching.</li>
 <li><code>arg_spec</code> <em>FixArgSpec</em> - Argument specification of the function.</li>

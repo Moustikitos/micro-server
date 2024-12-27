@@ -42,6 +42,9 @@
                                 <a href="serving/" class="nav-link">Serving</a>
                             </li>
                             <li class="navitem">
+                                <a href="request/" class="nav-link">Request</a>
+                            </li>
+                            <li class="navitem">
                                 <a href="wsgi-server/" class="nav-link">WSGI server</a>
                             </li>
                         </ul>
@@ -195,7 +198,7 @@ def do_test(a, b):
 <p>Using varargs or/and keywordargs is a convenient way to catch unexpected values from url query and HTTP context. HTTP Context is defined an headers and data (HTTP requests with body).</p>
 <p>When HTTP context is catched by <code>*args</code>, unexpected values from query string are appended next.</p>
 <p>Url used for this chapter <code>http://127.0.0.1:5000/test?b=12&amp;a=Paris&amp;unexpected=there</code>.</p>
-<h3 id="varargs-args">Varargs (<code>*args</code>)</h3>
+<h3 id="variable-args-args">Variable args (<code>*args</code>)</h3>
 <pre><code class="language-python">@srv.bind(&quot;/test&quot;)
 def do_test(a, b, *args):
     # write some code and return something
@@ -209,6 +212,7 @@ def do_test(a, b, *args):
   &quot;Paris&quot;,
   &quot;12&quot;,
   &quot;there&quot;,
+  &quot;GET&quot;,
   {
     &quot;host&quot;: &quot;127.0.0.1:5000&quot;,
     &quot;connection&quot;: &quot;keep-alive&quot;,
@@ -229,7 +233,7 @@ def do_test(a, b, *args):
   null
 ]
 </code></pre>
-<h3 id="keywordargs-kwargs">Keywordargs (<code>**kwargs</code>)</h3>
+<h3 id="keyword-args-kwargs">Keyword args (<code>**kwargs</code>)</h3>
 <pre><code class="language-python">@srv.bind(&quot;/test&quot;)
 def do_test(a, b, **kwargs):
     # write some code and return something
@@ -244,6 +248,7 @@ def do_test(a, b, **kwargs):
   &quot;12&quot;,
   {
     &quot;unexpected&quot;: &quot;there&quot;,
+    &quot;method&quot;: &quot;GET&quot;,
     &quot;headers&quot;: {
       &quot;host&quot;: &quot;127.0.0.1:5000&quot;,
       &quot;connection&quot;: &quot;keep-alive&quot;,
@@ -283,8 +288,8 @@ Options:
 <p><code>BINDINGS</code> is a space-separated-list of python module names (ie no <code>*.py</code> extention) containing boud python functions. Modules containing bound functions have to be in one of <code>sys.path</code> folder. Specific folder can be added using <code>wsgi_srv.path</code> file.</p>
 <h2 id="support-this-project">Support this project</h2>
 <p><a href="https://liberapay.com/Toons/donate"><img alt="Liberapay receiving" src="https://img.shields.io/liberapay/goal/Toons?logo=liberapay" /></a>
-<a href="https://paypal.me/toons"><img alt="Paypal me" src="https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&amp;logoColor=white" /></a>
-<a href="https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png"><img alt="Bitcoin" src="https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin" /></a></p></div>
+<a href="https://paypal.me/toons"><img alt="Paypal me" src="https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&amp;logoColor=white" /></a></p>
+<!-- [![Bitcoin](https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin)](https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png) --></div>
             </div>
         </div>
 
@@ -368,5 +373,5 @@ Options:
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2024-12-25 23:18:07.392875+00:00
+Build Date UTC : 2024-12-27 18:49:54.185214+00:00
 -->
