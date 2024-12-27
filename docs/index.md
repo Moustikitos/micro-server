@@ -7,7 +7,11 @@ Package (`usrv`) is a pure python micro server implementation.
 ## Install
 
 ```bash
-$ pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
+$ python -m pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
+```
+
+```bash
+$ python -m pip install usrv
 ```
 
 ## `usrv.route`
@@ -77,7 +81,7 @@ Returned value from query are `str` only. Unexpected values are ignored but ther
 Values can also be extracted from url path with or without a typing precision.
 
 ```python
-@srv.bind("/<int:b>/<a>")
+@route.bind("/<int:b>/<a>")
 def do_test(a, b):
     # write some code and return something
     return 200, a, b
@@ -108,7 +112,7 @@ Url used for this chapter `http://127.0.0.1:5000/test?b=12&a=Paris&unexpected=th
 ### Variable args (`*args`)
 
 ```python
-@srv.bind("/test")
+@route.bind("/test")
 def do_test(a, b, *args):
     # write some code and return something
     # args is a tuple
@@ -147,7 +151,7 @@ def do_test(a, b, *args):
 ### Keyword args (`**kwargs`)
 
 ```python
-@srv.bind("/test")
+@route.bind("/test")
 def do_test(a, b, **kwargs):
     # write some code and return something
     # kwargs is a dict
