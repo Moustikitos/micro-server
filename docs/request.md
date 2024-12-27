@@ -10,6 +10,7 @@ and managing HTTP requests and responses. It includes support for dynamic
 endpoints, SSL configuration, and content decoding based on MIME types.
 
 ## Classes
+  - RequestCache: a caching service for python HTTP Request.
   - Endpoint: Represents an HTTP endpoint with dynamic attribute handling and
     customizable request methods.
 
@@ -39,6 +40,45 @@ Predefined instances of the `Endpoint` class for standard HTTP methods:
 This module is designed to handle common HTTP operations in a clean and
 reusable manner, with dynamic endpoint resolution and robust response
 management.
+
+**Let's run a micro server:**
+
+```python
+from usrv import route
+
+# allow req.Endpoint.connect
+@route.bind("/", methods=["HEAD"])
+def base():
+    return 200,
+
+@route.bind("/index")
+def index(*args):
+    return (200, ) + args
+
+@route.bind("/api/endpoint", methods=["GET", "POST"])
+def endpoit(a, b, **kwargs):
+    method = kwargs["method"]
+    if method == "POST":
+        return 202,
+    elif method == "GET":
+        return 200, a, b, kwargs
+    else:
+        return 404,
+
+route.run(host='127.0.0.1', port=5000)
+```
+
+**execute simple requests:**
+
+```python
+>>> from usrv import req
+>>> req.Endpoint.connect("http://127.0.0.1:5000")
+200
+>>> req.GET.index()
+[{'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, None]
+>>> req.GET.api.endpoint()
+[None, None, {'headers': {'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, 'data': None}]
+```
 
 <a id="usrv.req.build_request"></a>
 
@@ -81,6 +121,62 @@ Parses the HTTP response.
 
   typing.Union[dict, str]: Decoded response content.
 
+<a id="usrv.req.RequestCache"></a>
+
+## RequestCache Objects
+
+```python
+class RequestCache()
+```
+
+Cache manager for HTTP Request objects.
+
+<a id="usrv.req.RequestCache.__init__"></a>
+
+### RequestCache.\_\_init\_\_
+
+```python
+def __init__(max_size: int = 100, ttl: int = 300)
+```
+
+Initialize the cache.
+
+**Arguments**:
+
+- `max_size` _int_ - Maximum number of entries in the cache.
+- `ttl` _int_ - Time-to-live for cache entries in seconds.
+
+<a id="usrv.req.RequestCache.generate_key"></a>
+
+### RequestCache.generate\_key
+
+```python
+@staticmethod
+def generate_key(method: str, path: str, **kwargs) -> str
+```
+
+Generate a unique cache key for a request.
+
+<a id="usrv.req.RequestCache.get"></a>
+
+### RequestCache.get
+
+```python
+def get(key: str) -> typing.Union[None, typing.Tuple[int, Request]]
+```
+
+Retrieve an entry from the cache.
+
+<a id="usrv.req.RequestCache.set"></a>
+
+### RequestCache.set
+
+```python
+def set(key: str, request: Request) -> None
+```
+
+Add an entry to the cache.
+
 <a id="usrv.req.Endpoint"></a>
 
 ## Endpoint Objects
@@ -105,7 +201,7 @@ Represents an HTTP endpoint with dynamic attribute handling.
 ```python
 def __init__(master: typing.Any = None,
              name: str = "",
-             method: Callable = build_request)
+             method: Callable = manage_response) -> None
 ```
 
 Initializes an Endpoint instance.
@@ -121,7 +217,7 @@ Initializes an Endpoint instance.
 ### Endpoint.\_\_getattr\_\_
 
 ```python
-def __getattr__(attr: str)
+def __getattr__(attr: str) -> typing.Any
 ```
 
 Dynamically resolves sub-endpoints.
@@ -140,7 +236,7 @@ Dynamically resolves sub-endpoints.
 ### Endpoint.\_\_call\_\_
 
 ```python
-def __call__(**kwargs)
+def __call__(**kwargs) -> typing.Any
 ```
 
 Executes the endpoint's method with provided arguments.
@@ -152,7 +248,7 @@ Executes the endpoint's method with provided arguments.
 
 **Returns**:
 
-- `Request` - Configured HTTP request.
+- `typing.Any` - value returned by `method` attribute.
 
 <a id="usrv.req.Endpoint.connect"></a>
 
@@ -160,7 +256,7 @@ Executes the endpoint's method with provided arguments.
 
 ```python
 @staticmethod
-def connect(peer: str)
+def connect(peer: str) -> typing.Union[int, bool]
 ```
 
 Tests connection to a peer endpoint and store it if success.

@@ -155,7 +155,7 @@ Binds a function to a specific URL path and HTTP methods.
 
 ```python
 def callback(url: str, headers: dict, data: str, function: Callable,
-             markups: OrderedDict, regexp: re.Pattern,
+             method: str, markups: OrderedDict, regexp: re.Pattern,
              arg_spec: inspect.FullArgSpec) -> typing.Any
 ```
 
@@ -169,6 +169,7 @@ lambda callback.
 - `headers` _dict_ - The HTTP headers from the request.
 - `data` _str_ - The body of the request.
 - `function` _Callable_ - The function to execute.
+- `method` _str_ - The HTTP command used.
 - `markups` _OrderedDict_ - Mappings of path variables to their types.
 - `regexp` _re.Pattern_ - Compiled regex for path matching.
 - `arg_spec` _FixArgSpec_ - Argument specification of the function.

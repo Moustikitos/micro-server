@@ -45,6 +45,7 @@ management.
 ```python
 from usrv import route
 
+# allow req.Endpoint.connect
 @route.bind("/", methods=["HEAD"])
 def base():
     return 200,

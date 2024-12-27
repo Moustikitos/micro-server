@@ -105,7 +105,7 @@ When HTTP context is catched by `*args`, unexpected values from query string are
 
 Url used for this chapter `http://127.0.0.1:5000/test?b=12&a=Paris&unexpected=there`.
 
-### Varargs (`*args`)
+### Variable args (`*args`)
 
 ```python
 @srv.bind("/test")
@@ -122,6 +122,7 @@ def do_test(a, b, *args):
   "Paris",
   "12",
   "there",
+  "GET",
   {
     "host": "127.0.0.1:5000",
     "connection": "keep-alive",
@@ -143,7 +144,7 @@ def do_test(a, b, *args):
 ]
 ```
 
-### Keywordargs (`**kwargs`)
+### Keyword args (`**kwargs`)
 
 ```python
 @srv.bind("/test")
@@ -161,6 +162,7 @@ def do_test(a, b, **kwargs):
   "12",
   {
     "unexpected": "there",
+    "method": "GET",
     "headers": {
       "host": "127.0.0.1:5000",
       "connection": "keep-alive",
@@ -208,4 +210,4 @@ Options:
 
 [![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate)
 [![Paypal me](https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&logoColor=white)](https://paypal.me/toons)
-[![Bitcoin](https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin)](https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png)
+<!-- [![Bitcoin](https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin)](https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png) -->
