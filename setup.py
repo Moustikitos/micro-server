@@ -10,12 +10,17 @@ with open("VERSION") as f1, open("README.md") as f2:
 kw = {
     "version": VERSION,
     "name": "usrv",
-    "keywords": ["json", "micro", "server", "HTTP"],
+    "keywords": ["micro", "framework", "HTTP"],
     "author": "THOORENS Bruno",
     "author_email": "moustikitos@gmail.com",
     "maintainer": "THOORENS Bruno",
     "maintainer_email": "moustikitos@gmail.com",
-    "url": "https://github.com/Moustikitos/micro-server",
+    "url": "https://moustikitos.github.io/micro-server",
+    "project_urls": {  # Optional
+        "Bug Reports": "https://github.com/Moustikitos/micro-server/issues",
+        "Funding": "https://github.com/Moustikitos/micro-server/?tab=readme-ov-file#support-this-project",
+        "Source": "https://github.com/Moustikitos/micro-server",
+    },
     "download_url":
         "https://github.com/Moustikitos/micro-server/archive/master.zip",
     "include_package_data": True,
