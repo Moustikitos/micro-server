@@ -198,6 +198,8 @@ route.run(host='127.0.0.1', port=5000)
 [{'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, None]
 &gt;&gt;&gt; req.GET.api.endpoint()
 [None, None, {'headers': {'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, 'data': None}]
+&gt;&gt;&gt; req.POST.api.endpoint()
+[]
 </code></pre>
 <p><a id="usrv.req.build_request"></a></p>
 <h2 id="build_request">build_request</h2>

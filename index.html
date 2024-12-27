@@ -135,7 +135,9 @@
 <p><a href="https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a></p>
 <p>Package (<code>usrv</code>) is a pure python micro server implementation.</p>
 <h2 id="install">Install</h2>
-<pre><code class="language-bash">$ pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
+<pre><code class="language-bash">$ python -m pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
+</code></pre>
+<pre><code class="language-bash">$ python -m pip install usrv
 </code></pre>
 <h2 id="usrvroute"><code>usrv.route</code></h2>
 <p>Bind python code to any HTTP requests easily using decorator syntax.
@@ -180,7 +182,7 @@ CTRL+C to stop...
 <p>Returned value from query are <code>str</code> only. Unexpected values are ignored but there is a <a href="#catching-unexpected-values">convenient way to catch them</a>.</p>
 <h2 id="extracting-values-from-url-path">Extracting values from url path</h2>
 <p>Values can also be extracted from url path with or without a typing precision.</p>
-<pre><code class="language-python">@srv.bind(&quot;/&lt;int:b&gt;/&lt;a&gt;&quot;)
+<pre><code class="language-python">@route.bind(&quot;/&lt;int:b&gt;/&lt;a&gt;&quot;)
 def do_test(a, b):
     # write some code and return something
     return 200, a, b
@@ -199,7 +201,7 @@ def do_test(a, b):
 <p>When HTTP context is catched by <code>*args</code>, unexpected values from query string are appended next.</p>
 <p>Url used for this chapter <code>http://127.0.0.1:5000/test?b=12&amp;a=Paris&amp;unexpected=there</code>.</p>
 <h3 id="variable-args-args">Variable args (<code>*args</code>)</h3>
-<pre><code class="language-python">@srv.bind(&quot;/test&quot;)
+<pre><code class="language-python">@route.bind(&quot;/test&quot;)
 def do_test(a, b, *args):
     # write some code and return something
     # args is a tuple
@@ -234,7 +236,7 @@ def do_test(a, b, *args):
 ]
 </code></pre>
 <h3 id="keyword-args-kwargs">Keyword args (<code>**kwargs</code>)</h3>
-<pre><code class="language-python">@srv.bind(&quot;/test&quot;)
+<pre><code class="language-python">@route.bind(&quot;/test&quot;)
 def do_test(a, b, **kwargs):
     # write some code and return something
     # kwargs is a dict
@@ -373,5 +375,5 @@ Options:
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2024-12-27 19:32:46.905366+00:00
+Build Date UTC : 2024-12-27 19:33:41.650179+00:00
 -->
