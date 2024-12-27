@@ -45,7 +45,9 @@ def wsgi_call(
         for k, v in environ.items() if k.startswith("HTTP_")
     )
     path = urlparse.quote(environ.get('PATH_INFO', ''))
-    endpoints = getattr(cls, "ENDPOINTS", {})
+
+    # Loop through registered endpoints for the given method.
+    endpoints = getattr(cls, "ENDPOINTS", object())
     for regexp, callback in getattr(endpoints, method, {}).items():
         if regexp.match(path):
             try:

@@ -127,7 +127,8 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
         path = urlparse.urlparse(self.path).path
 
         # Loop through registered endpoints for the given method.
-        for regexp, callback in uHTTPRequestHandler.ENDPOINTS.GET.items():
+        endpoints = getattr(uHTTPRequestHandler, "ENDPOINTS", object())
+        for regexp, callback in getattr(endpoints, method, {}).items():
             if regexp.match(path):
                 try:
                     status, *result = callback(
@@ -250,13 +251,14 @@ def bind(
                 raise EndpointAlreadyDefined(f"{path} regexp already set")
             # set regexp - callback pair
             getattr(target.ENDPOINTS, method)[regexp] = \
-                lambda url, headers, data, f=function, m=markups, r=regexp, \
-                a=arg_spec: callback(url, headers, data, f, m, r, a)
+                lambda url, headers, data, f=function, m=method, v=markups, \
+                r=regexp, a=arg_spec: \
+                callback(url, headers, data, f, m, v, r, a)
     return decorator
 
 
 def callback(
-    url: str, headers: dict, data: str, function: Callable,
+    url: str, headers: dict, data: str, function: Callable, method: str,
     markups: OrderedDict, regexp: re.Pattern, arg_spec: inspect.FullArgSpec,
 ) -> typing.Any:
     """
@@ -269,6 +271,7 @@ def callback(
         headers (dict): The HTTP headers from the request.
         data (str): The body of the request.
         function (Callable): The function to execute.
+        method (str): The HTTP command used.
         markups (OrderedDict): Mappings of path variables to their types.
         regexp (re.Pattern): Compiled regex for path matching.
         arg_spec (FixArgSpec): Argument specification of the function.
@@ -311,11 +314,11 @@ def callback(
             dict([k, v] for k, v in parse_qsl if k not in arg_spec.args),
             **dict([k, v] for k, v in params.items() if k not in arg_spec.args)
         )
-        kwargs.update(headers=headers, data=data)
+        kwargs.update(method=method, headers=headers, data=data)
     elif arg_spec.varargs is not None:
         args += tuple(v for k, v in parse_qsl if k not in arg_spec.args) + \
             tuple(v for k, v in params.items() if k not in arg_spec.args) + \
-            (headers, data)
+            (method, headers, data)
     return function(*args, **kwargs)
 
 
