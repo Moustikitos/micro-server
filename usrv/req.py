@@ -9,7 +9,7 @@ and managing HTTP requests and responses. It includes support for dynamic
 endpoints, SSL configuration, and content decoding based on MIME types.
 
 ## Classes
-  - 
+  - RequestCache: a caching service for python HTTP Request.
   - Endpoint: Represents an HTTP endpoint with dynamic attribute handling and
     customizable request methods.
 
@@ -39,6 +39,47 @@ Predefined instances of the `Endpoint` class for standard HTTP methods:
 This module is designed to handle common HTTP operations in a clean and
 reusable manner, with dynamic endpoint resolution and robust response
 management.
+
+**Let's run a micro server:**
+
+```python
+from usrv import route
+
+@route.bind("/", methods=["HEAD"])
+def base():
+    return 200,
+
+@route.bind("/index")
+def index(*args):
+    return (200, ) + args
+
+@route.bind("/api/endpoint", methods=["GET", "POST"])
+def endpoit(a, b, **kwargs):
+    method = kwargs["method"]
+    if method == "POST":
+        return 202,
+    elif method == "GET":
+        return 200, a, b, kwargs
+    else:
+        return 404,
+
+route.run(host='127.0.0.1', port=5000)
+```
+
+**execute simple requests:**
+
+```python
+>>> from usrv import req
+>>> req.Endpoint.connect("http://127.0.0.1:5000")
+200
+>>> req.GET.index()
+[{'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Pyth\
+on/usrv', 'content-type': 'application/json', 'connection': 'close'}, None]
+>>> req.GET.api.endpoint()
+[None, None, {'headers': {'accept-encoding': 'identity', 'host': '127.0.0.1:50\
+00', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connect\
+ion': 'close'}, 'data': None}]
+```
 """
 
 import re
@@ -115,7 +156,7 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
     headers = kwargs.pop("headers", {"User-Agent": "Python/usrv"})
     method = method.upper()
 
-    if method in ["GET", "DELETE", "HEAD", "OPTIONS", "TRACE"]:
+    if method in ["GET", "DELETE", "HEAD", "OPTION", "TRACE"]:
         query = urlencode(kwargs)
         data = None
     else:
@@ -214,8 +255,8 @@ class Endpoint:
 
     def __init__(
         self, master: typing.Any = None, name: str = "",
-        method: Callable = build_request
-    ):
+        method: Callable = manage_response
+    ) -> None:
         """
         Initializes an Endpoint instance.
 
@@ -230,7 +271,7 @@ class Endpoint:
             self.path = f"{master.path}/{name}"
         self.method = method
 
-    def __getattr__(self, attr: str):
+    def __getattr__(self, attr: str) -> typing.Any:
         """
         Dynamically resolves sub-endpoints.
 
@@ -247,7 +288,7 @@ class Endpoint:
                 attr = attr[1:]
             return Endpoint(self, attr, self.method)
 
-    def __call__(self, **kwargs):
+    def __call__(self, **kwargs) -> typing.Any:
         """
         Executes the endpoint's method with provided arguments.
 
@@ -255,12 +296,12 @@ class Endpoint:
             **kwargs: Parameters for the HTTP request.
 
         Returns:
-            Request: Configured HTTP request.
+            typing.Any: value returned by `method` attribute.
         """
         return self.method(self.path, **kwargs)
 
     @staticmethod
-    def connect(peer: str):
+    def connect(peer: str) -> typing.Union[int, bool]:
         """
         Tests connection to a peer endpoint and store it if success.
 
@@ -313,7 +354,7 @@ HEAD = Endpoint(
 OPTION = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("HEAD", url, encoder=json.dumps, **parameters),
+            build_request("OPTION", url, encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
