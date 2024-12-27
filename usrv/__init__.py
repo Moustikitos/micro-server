@@ -14,6 +14,8 @@ requests and responses.
   handling and URL reconstruction.
 - route: Provides the web server capabilities, handling of incoming requests
   and endpoint management.
+- req: Provides a light request interface and with a pythonic way to access
+  remote resources.
 - app: Provides the root app to be run behind WSGI for production mode.
 
 ## Features:
