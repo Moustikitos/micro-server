@@ -9,6 +9,7 @@ and managing HTTP requests and responses. It includes support for dynamic
 endpoints, SSL configuration, and content decoding based on MIME types.
 
 ## Classes
+  - 
   - Endpoint: Represents an HTTP endpoint with dynamic attribute handling and
     customizable request methods.
 
@@ -42,11 +43,14 @@ management.
 
 import re
 import ssl
+import time
 import json
 import typing
+import hashlib
 import traceback
 
 from usrv import LOG
+from collections import OrderedDict
 from collections.abc import Callable
 from urllib.request import Request, OpenerDirector, HTTPHandler
 from urllib.request import HTTPSHandler, FileHandler
@@ -62,12 +66,23 @@ Urltuple = namedtuple(
 )
 
 CONTEXT = ssl.create_default_context()
-CONTEXT.check_hostname = False
-CONTEXT.verify_mode = ssl.CERT_NONE
+CONTEXT.check_hostname = True
+CONTEXT.verify_mode = ssl.CERT_REQUIRED
+# Disable outdated SSL and TLS lib
+CONTEXT.options |= ssl.OP_NO_SSLv2
+CONTEXT.options |= ssl.OP_NO_SSLv3
+CONTEXT.options |= ssl.OP_NO_TLSv1
+CONTEXT.options |= ssl.OP_NO_TLSv1_1
 
 DECODERS = {
     "application/x-www-form-urlencoded": parse_qsl,
-    "application/json": json.loads
+    "application/json": json.loads,
+    "application/octet-stream": lambda o: o
+}
+
+ENCODERS = {
+    urlencode: "application/x-www-form-urlencoded",
+    json.dumps: "application/json",
 }
 
 OPENER = OpenerDirector()
@@ -88,7 +103,13 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
 
     Returns:
         Request: Configured HTTP request object.
-    """
+        """
+    # Check if the request is already cached
+    key = RequestCache.generate_key(method, path, **kwargs)
+    cached_request = Endpoint.cache.get(key)
+    if cached_request is not None:
+        return cached_request
+
     encoder = kwargs.pop("encoder", urlencode)
     peer = kwargs.pop("peer", False) or Endpoint.peer
     headers = kwargs.pop("headers", {"User-Agent": "Python/usrv"})
@@ -102,15 +123,13 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
         data = encoder(kwargs)
         data = data if isinstance(data, bytes) else data.encode("latin-1")
 
-    headers["Content-Type"] = \
-        "application/x-www-form-urlencoded" if encoder == urlencode else \
-        "application/json"
-
+    headers["Content-Type"] = ENCODERS.get(encoder, "application/octet-stream")
     req = Request(
         urlunparse(urlparse(peer)._replace(path=path, query=query)),
         data, headers
     )
     req.get_method = lambda: method
+    Endpoint.cache.set(key, req)
     return req
 
 
@@ -135,6 +154,47 @@ def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
     return text
 
 
+class RequestCache:
+    """Cache manager for HTTP Request objects."""
+
+    def __init__(self, max_size: int = 100, ttl: int = 300):
+        """
+        Initialize the cache.
+
+        Args:
+            max_size (int): Maximum number of entries in the cache.
+            ttl (int): Time-to-live for cache entries in seconds.
+        """
+        self.cache = OrderedDict()
+        self.max_size = max_size
+        self.ttl = ttl
+
+    @staticmethod
+    def generate_key(method: str, path: str, **kwargs) -> str:
+        """Generate a unique cache key for a request."""
+        return hashlib.sha256(
+            f"{method.upper()}|{path}|{sorted(kwargs.items())}".encode("utf-8")
+        ).hexdigest()
+
+    def get(self, key: str) -> typing.Union[None, typing.Tuple[int, Request]]:
+        """Retrieve an entry from the cache."""
+        entry = self.cache.get(key)
+        if entry is not None:
+            timestamp, request = entry
+            if time.time() - timestamp > self.ttl:
+                # Entry has expired
+                self.cache.pop(key)
+            return request
+        return None
+
+    def set(self, key: str, request: Request) -> None:
+        """Add an entry to the cache."""
+        if len(self.cache) >= self.max_size:
+            # Remove the oldest entry
+            self.cache.popitem(last=False)
+        self.cache[key] = (time.time(), request)
+
+
 class Endpoint:
     """
     Represents an HTTP endpoint with dynamic attribute handling.
@@ -146,8 +206,9 @@ class Endpoint:
         peer (str): Base URL for the endpoint.
     """
 
+    cache = RequestCache(100, 600)
     startswith_ = re.compile(r"^_[0-9].*")
-    timeout = 5
+    timeout = 5.0
     opener = None
     peer = None
 
@@ -225,7 +286,8 @@ class Endpoint:
 CONNECT = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("CONNECT", url, encoder=json.dumps, **parameters)
+            build_request("CONNECT", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -233,7 +295,8 @@ CONNECT = Endpoint(
 GET = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("GET", url, encoder=json.dumps, **parameters)
+            build_request("GET", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -241,7 +304,8 @@ GET = Endpoint(
 HEAD = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("HEAD", url, encoder=json.dumps, **parameters)
+            build_request("HEAD", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -249,7 +313,8 @@ HEAD = Endpoint(
 OPTION = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("HEAD", url, encoder=json.dumps, **parameters)
+            build_request("HEAD", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -257,7 +322,8 @@ OPTION = Endpoint(
 PATCH = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("PATCH", url, encoder=json.dumps, **parameters)
+            build_request("PATCH", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -265,7 +331,8 @@ PATCH = Endpoint(
 POST = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("POST", url, encoder=json.dumps, **parameters)
+            build_request("POST", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -273,7 +340,8 @@ POST = Endpoint(
 PUT = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("PUT", url, encoder=json.dumps, **parameters)
+            build_request("PUT", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -281,7 +349,8 @@ PUT = Endpoint(
 TRACE = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("TRACE", url, encoder=json.dumps, **parameters)
+            build_request("TRACE", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
@@ -289,7 +358,8 @@ TRACE = Endpoint(
 DELETE = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("DELETE", url, encoder=json.dumps, **parameters)
+            build_request("DELETE", url, encoder=json.dumps, **parameters),
+            timeout=Endpoint.timeout
         )
     )
 )
