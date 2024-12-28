@@ -10,6 +10,7 @@ processors:
 hooks:
   pre-render:
   - python -c "import os;os.makedirs('./docs', exist_ok=True)"
+  - pydoc-markdown -m wsgi_srv > ./docs/wsgi-server.md
 
 renderer:
   output_directory: .
@@ -43,7 +44,7 @@ renderer:
       contents:
       - usrv.req.*
     - title: WSGI server
-      source: wsgi_srv.md
+      source: ./docs/wsgi-server.md
 
   mkdocs_config:
     site_name: Python usrv project
