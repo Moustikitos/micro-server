@@ -95,7 +95,7 @@ def wsgi_call(
 
 def wsgi_rebuild_url(env: dict) -> str:
     """
-    Rebuild the full URL from the WSGI environment according to PEP #3333.
+    Rebuild the full URL from the WSGI environment according to PEP 3333.
 
     Args:
         env: A dictionary containing WSGI environment variables.
