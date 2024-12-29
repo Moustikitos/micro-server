@@ -175,7 +175,9 @@ def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
     Returns:
         typing.Union[dict, str]: Decoded response content.
     """
-    content_type = resp.headers.get("content-type").lower()
+    content_type = resp.headers.get(
+        "content-type", "application/octet-stream"
+    ).lower()
     http_input = resp.read()
     http_input = \
         http_input.decode(resp.headers.get_content_charset("latin-1")) \

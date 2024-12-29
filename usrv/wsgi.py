@@ -13,7 +13,7 @@ For more information, see: https://www.python.org/dev/peps/pep-3333
 import traceback
 import urllib.parse as urlparse
 
-from usrv import LOG
+from usrv import LOG, secp256k1, route
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler
 
@@ -44,9 +44,24 @@ def wsgi_call(
         [k.replace("HTTP_", "").replace("_", "-").lower(), v]
         for k, v in environ.items() if k.startswith("HTTP_")
     )
-    path = urlparse.quote(environ.get('PATH_INFO', ''))
+
+    # manage encrypted body
+    puk = headers.get("ephemeral-public-key", None)
+    sender_puk = headers.get("sender-public-key", None)
+    signature = headers.get("sender-signature", None)
+    if all([puk, sender_puk, signature]) and secp256k1.verify(
+        http_input+puk, signature, sender_puk
+    ):
+        decrypted = secp256k1.decrypt(route.PRIVATE_KEY, puk, http_input)
+        if decrypted is False:
+            LOG.error(f"Encryption error: {http_input} - {puk}")
+            start_response("500", ())
+            return [b""]
+        else:
+            http_input = decrypted
 
     # Loop through registered endpoints for the given method.
+    path = urlparse.quote(environ.get('PATH_INFO', ''))
     endpoints = getattr(cls, "ENDPOINTS", object())
     for regexp, callback in getattr(endpoints, method, {}).items():
         if regexp.match(path):
@@ -60,14 +75,14 @@ def wsgi_call(
                     f"response:\n{error}\n{traceback.format_exc()}"
                 )
                 start_response("406", ())
-                return b""
+                return [b"python function did not return a valid response"]
             except Exception as error:
                 LOG.error(
                     f"python function {callback} failed during execution:"
                     f"\n{error}\n{traceback.format_exc()}"
                 )
                 start_response("500", ())
-                return b""
+                return [b"python function failed during execution"]
 
             if not isinstance(status, int):
                 LOG.error(
@@ -75,22 +90,36 @@ def wsgi_call(
                     "HTTP response status code (ie integer)"
                 )
                 start_response("406", ())
-                return b""
+                return [
+                    b"first value returned by should be an HTTP response "
+                    b"status code (ie integer)"
+                ]
             elif status >= 400:
                 start_response(f"{status}", ())
-                return b""
+                return [b""]
             else:
                 data, content_type = cls.format_response(result)
+                headers = ()
+                if sender_puk is not None:
+                    R, data = secp256k1.encrypt(sender_puk, data)
+                    headers += (
+                        ["Ephemeral-Public-Key", R],
+                        ["Sender-Public-Key", route.PUBLIC_KEY],
+                        [
+                            "Sender-Signature",
+                            secp256k1.sign(data+R, route.PRIVATE_KEY)
+                        ]
+                    )
                 start_response(
-                    f"{status}", (["Content-type", content_type],)
+                    f"{status}", (["Content-type", content_type],) + headers
                 )(
                     data if isinstance(data, bytes) else
                     data.encode("latin-1")
                 )
-            return b""
+            return [b""]
     # If the loop exits, then no endpoint was found.
     start_response("404", ())
-    return b""
+    return [b"Enpoint not found"]
 
 
 def wsgi_rebuild_url(env: dict) -> str:

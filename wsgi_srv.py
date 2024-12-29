@@ -60,10 +60,16 @@ parser.add_option(
 
 # Define default routes if no modules are specified in arguments.
 if len(args) == 0:
-    @route.bind("/")
+
+    @route.bind("/", methods=["HEAD"])
+    def test() -> tuple:
+        """Allows Endoint.connect"""
+        return 200,
+
+    @route.bind("/puk")
     def test0() -> tuple:
-        """Return a test page."""
-        return 200, "Test page"
+        """Return server public key."""
+        return 200, route.PUBLIC_KEY
 
     @route.bind("/vargs")
     def test1(a, b=1, c=0, *args) -> tuple:
@@ -81,7 +87,7 @@ if len(args) == 0:
         """
         return 200, a, b, c, args
 
-    @route.bind("/kwargs")
+    @route.bind("/kwargs", methods=["GET", "POST"])
     def test2(name, a, b=2, **kwargs) -> tuple:
         """
         Demonstrate handling of keyword arguments.
