@@ -45,7 +45,7 @@
                                 <a href="./" class="nav-link">Request</a>
                             </li>
                             <li class="navitem">
-                                <a href="../wsgi-server/" class="nav-link">WSGI server</a>
+                                <a href="../encryption/" class="nav-link">Encryption</a>
                             </li>
                         </ul>
 
@@ -61,7 +61,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="next" href="../wsgi-server/" class="nav-link">
+                                <a rel="next" href="../encryption/" class="nav-link">
                                     Next <i class="fa fa-arrow-right"></i>
                                 </a>
                             </li>
@@ -88,22 +88,6 @@
             
             <li class="nav-item" data-level="1"><a href="#req" class="nav-link">req</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#classes" class="nav-link">Classes</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#functions" class="nav-link">Functions</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#constants" class="nav-link">Constants</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#endpoints" class="nav-link">Endpoints</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
             <li class="nav-item" data-level="2"><a href="#build_request" class="nav-link">build_request</a>
               <ul class="nav flex-column">
               </ul>
@@ -120,6 +104,10 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-level="2"><a href="#build_endpoint" class="nav-link">build_endpoint</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
               </ul>
             </li>
         </ul>
@@ -129,40 +117,6 @@
 
 <p><a id="usrv.req"></a></p>
 <h1 id="req">req</h1>
-<p><strong>HTTP Client Module</strong></p>
-<p>This module provides a flexible and extensible framework for building, sending,
-and managing HTTP requests and responses. It includes support for dynamic
-endpoints, SSL configuration, and content decoding based on MIME types.</p>
-<h2 id="classes">Classes</h2>
-<ul>
-<li>RequestCache: a caching service for python HTTP Request.</li>
-<li>Endpoint: Represents an HTTP endpoint with dynamic attribute handling and
-    customizable request methods.</li>
-</ul>
-<h2 id="functions">Functions</h2>
-<ul>
-<li>build_request: Constructs HTTP requests with specified parameters and
-    headers.</li>
-<li>manage_response: Parses and decodes HTTP responses based on their MIME
-    types.</li>
-</ul>
-<h2 id="constants">Constants</h2>
-<ul>
-<li>CONTEXT: SSL context with disabled hostname verification.</li>
-<li>DECODERS: Dictionary mapping MIME types to their respective parsers.</li>
-<li>OPENER: Global HTTP request opener.</li>
-</ul>
-<h2 id="endpoints">Endpoints</h2>
-<p>Predefined instances of the <code>Endpoint</code> class for standard HTTP methods:
-  - CONNECT
-  - GET
-  - HEAD
-  - OPTION
-  - PATCH
-  - POST
-  - PUT
-  - TRACE
-  - DELETE</p>
 <p>This module is designed to handle common HTTP operations in a clean and
 reusable manner, with dynamic endpoint resolution and robust response
 management.</p>
@@ -321,7 +275,24 @@ def connect(peer: str) -&gt; typing.Union[int, bool]
 <li><code>peer</code> <em>str</em> - Peer URL to test.</li>
 </ul>
 <p><strong>Returns</strong>:</p>
-<p>typing.Union[int, bool]: HTTP status code or False on failure.</p></div>
+<p>typing.Union[int, bool]: HTTP status code or False on failure.</p>
+<p><a id="usrv.req.build_endpoint"></a></p>
+<h2 id="build_endpoint">build_endpoint</h2>
+<pre><code class="language-python">def build_endpoint(http_req: str = &quot;GET&quot;,
+                   encoder: Callable = json.dumps,
+                   timeout: int = Endpoint.timeout) -&gt; Endpoint
+</code></pre>
+<p>Creates a root endpoint.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>http_req</code> <em>str</em> - Name of HTTP method (i.e. HEAD, GET, POST etc&hellip;).</li>
+<li><code>encoder</code> <em>Callable</em> - Data encoder function to use.</li>
+<li><code>timeout</code> <em>int</em> - Request timeout in seconds.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Endpoint</code> - Root endpoint.</li>
+</ul></div>
             </div>
         </div>
 

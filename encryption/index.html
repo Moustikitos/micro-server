@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        
+        
+        <link rel="shortcut icon" href="../img/favicon.ico">
+        <title>Encryption - Python usrv project</title>
+        <link href="../css/bootstrap.min.css" rel="stylesheet">
+        <link href="../css/font-awesome.min.css" rel="stylesheet">
+        <link href="../css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+        <link href="../style.css" rel="stylesheet">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script>hljs.highlightAll();</script> 
+    </head>
+
+    <body>
+        <div class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+            <div class="container">
+                <a class="navbar-brand" href="..">Python usrv project</a>
+                <!-- Expander button -->
+                <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Expanded navigation -->
+                <div id="navbar-collapse" class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="navitem">
+                                <a href=".." class="nav-link">Home</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../bindings/" class="nav-link">Bindings</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../serving/" class="nav-link">Serving</a>
+                            </li>
+                            <li class="navitem">
+                                <a href="../request/" class="nav-link">Request</a>
+                            </li>
+                            <li class="navitem active">
+                                <a href="./" class="nav-link">Encryption</a>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="nav-item">
+                                <a rel="prev" href="../request/" class="nav-link">
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="next" class="nav-link disabled">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://github.com/Moustikitos/micro-server/edit/master/docs/encryption.md" class="nav-link"><i class="fa fa-github"></i> Edit on GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                    <div class="col-md-3"><div class="navbar-light navbar-expand-md bs-sidebar hidden-print affix" role="complementary">
+    <div class="navbar-header">
+        <button type="button" class="navbar-toggler collapsed" data-toggle="collapse" data-target="#toc-collapse" title="Table of Contents">
+            <span class="fa fa-angle-down"></span>
+        </button>
+    </div>
+
+    
+    <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
+        <ul class="nav flex-column">
+            
+            <li class="nav-item" data-level="1"><a href="#secp256k1" class="nav-link">secp256k1</a>
+              <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#encryptionerror-objects" class="nav-link">EncryptionError Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#bip39_hash" class="nav-link">bip39_hash</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#y_from_x" class="nav-link">y_from_x</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#decode" class="nav-link">decode</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#b64encode" class="nav-link">b64encode</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#b64decode" class="nav-link">b64decode</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#mod_inverse" class="nav-link">mod_inverse</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#point_add" class="nav-link">point_add</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#point_double" class="nav-link">point_double</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#point_multiply" class="nav-link">point_multiply</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#generate_keypair" class="nav-link">generate_keypair</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#sign" class="nav-link">sign</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#verify" class="nav-link">verify</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#aes_encrypt" class="nav-link">aes_encrypt</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#aes_decrypt" class="nav-link">aes_decrypt</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#encrypt" class="nav-link">encrypt</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#decrypt" class="nav-link">decrypt</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+              </ul>
+            </li>
+        </ul>
+    </div>
+</div></div>
+                    <div class="col-md-9" role="main">
+
+<p><a id="usrv.secp256k1"></a></p>
+<h1 id="secp256k1">secp256k1</h1>
+<p><a id="usrv.secp256k1.EncryptionError"></a></p>
+<h2 id="encryptionerror-objects">EncryptionError Objects</h2>
+<pre><code class="language-python">class EncryptionError(Exception)
+</code></pre>
+<p>Custom exception for encryption errors.</p>
+<p><a id="usrv.secp256k1.bip39_hash"></a></p>
+<h2 id="bip39_hash">bip39_hash</h2>
+<pre><code class="language-python">def bip39_hash(secret: str, passphrase: str = &quot;SALT&quot;) -&gt; bytes
+</code></pre>
+<p>Returns bip39 hash bytes string. This function does not check mnemonic
+integrity.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>secret</code> <em>str</em> - a mnemonic string.</li>
+<li><code>passphrase</code> <em>str</em> - salt string.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>bytes</code> - 64 length bytes string.</li>
+</ul>
+<p><a id="usrv.secp256k1.y_from_x"></a></p>
+<h2 id="y_from_x">y_from_x</h2>
+<pre><code class="language-python">def y_from_x(x: int) -&gt; int
+</code></pre>
+<p>Computes y from x according to <code>secp256k1</code> equation.</p>
+<p><a id="usrv.secp256k1.decode"></a></p>
+<h2 id="decode">decode</h2>
+<pre><code class="language-python">def decode(puk: str) -&gt; tuple
+</code></pre>
+<p>Decompresses a compressed <code>secp256k1</code> point.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>pubkey</code> <em>str</em> - Compressed and encoded point.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>tuple</code> - Point on <code>secp256k1</code> the curve.</li>
+</ul>
+<p><a id="usrv.secp256k1.b64encode"></a></p>
+<h2 id="b64encode">b64encode</h2>
+<pre><code class="language-python">def b64encode(point: tuple) -&gt; str
+</code></pre>
+<p>Encodes an elliptic curve point or ECDSA signaturesas a base64 string.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>point</code> <em>tuple</em> - The elliptic curve point as a tuple (x, y), where x and
+  y are integers.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - The base64-encoded string representing the point.</li>
+</ul>
+<p><a id="usrv.secp256k1.b64decode"></a></p>
+<h2 id="b64decode">b64decode</h2>
+<pre><code class="language-python">def b64decode(raw: str) -&gt; tuple
+</code></pre>
+<p>Decodes a base64-encoded string into an elliptic curve point or ECDSA
+signature.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>raw</code> <em>str</em> - The base64-encoded string.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>tuple</code> - The elliptic curve point as a tuple (x, y).</li>
+</ul>
+<p><a id="usrv.secp256k1.mod_inverse"></a></p>
+<h2 id="mod_inverse">mod_inverse</h2>
+<pre><code class="language-python">def mod_inverse(k: int, p: int) -&gt; int
+</code></pre>
+<p>Computes the modular inverse using the extended Euclidean algorithm.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>k</code> <em>int</em> - The integer to invert.</li>
+<li><code>p</code> <em>int</em> - The modulus.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>int</code> - The modular inverse of k modulo p.</li>
+</ul>
+<p><strong>Raises</strong>:</p>
+<ul>
+<li><code>ZeroDivisionError</code> - If k is zero.</li>
+</ul>
+<p><a id="usrv.secp256k1.point_add"></a></p>
+<h2 id="point_add">point_add</h2>
+<pre><code class="language-python">def point_add(C: tuple, D: tuple) -&gt; tuple
+</code></pre>
+<p>Adds two points on the elliptic curve.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>C</code> <em>tuple</em> - The first point as a tuple (x, y).</li>
+<li><code>D</code> <em>tuple</em> - The second point as a tuple (x, y).</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>tuple</code> - The resulting point after addition.</li>
+</ul>
+<p><a id="usrv.secp256k1.point_double"></a></p>
+<h2 id="point_double">point_double</h2>
+<pre><code class="language-python">def point_double(C: tuple) -&gt; tuple
+</code></pre>
+<p>Doubles a point on the elliptic curve.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>C</code> <em>tuple</em> - The point to double as a tuple (x, y).</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>tuple</code> - The resulting point after doubling.</li>
+</ul>
+<p><a id="usrv.secp256k1.point_multiply"></a></p>
+<h2 id="point_multiply">point_multiply</h2>
+<pre><code class="language-python">def point_multiply(k: int, C: tuple) -&gt; tuple
+</code></pre>
+<p>Multiplies a point P by a scalar k on the elliptic curve.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>k</code> <em>int</em> - The scalar multiplier.</li>
+<li><code>C</code> <em>tuple</em> - The point to multiply as a tuple (x, y).</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>tuple</code> - The resulting point after multiplication.</li>
+</ul>
+<p><a id="usrv.secp256k1.generate_keypair"></a></p>
+<h2 id="generate_keypair">generate_keypair</h2>
+<pre><code class="language-python">def generate_keypair(secret: str = None)
+</code></pre>
+<p>Generates a private and public key pair for SECP256k1.</p>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>tuple</code> - A tuple containing the private key (int) and the base64-encoded
+  public key.</li>
+</ul>
+<p><a id="usrv.secp256k1.sign"></a></p>
+<h2 id="sign">sign</h2>
+<pre><code class="language-python">def sign(message: str, private_key: int) -&gt; str
+</code></pre>
+<p>Signs a message using a private key.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>message</code> <em>str</em> - The message to sign.</li>
+<li><code>private_key</code> <em>int</em> - The private key used for signing.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - The base64-encoded signature.</li>
+</ul>
+<p><a id="usrv.secp256k1.verify"></a></p>
+<h2 id="verify">verify</h2>
+<pre><code class="language-python">def verify(message: str, signature: str, public_key: str) -&gt; bool
+</code></pre>
+<p>Verifies an ECDSA signature using a public key.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>message</code> <em>str</em> - The signed message.</li>
+<li><code>signature</code> <em>str</em> - The base64-encoded signature.</li>
+<li><code>public_key</code> <em>str</em> - The base64-encoded public key.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>bool</code> - True if the signature is valid, False otherwise.</li>
+</ul>
+<p><a id="usrv.secp256k1.aes_encrypt"></a></p>
+<h2 id="aes_encrypt">aes_encrypt</h2>
+<pre><code class="language-python">def aes_encrypt(data: str, secret: str) -&gt; str
+</code></pre>
+<p>Encrypts data using AES with a secret.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>data</code> <em>str</em> - The plaintext data to encrypt.</li>
+<li><code>secret</code> <em>str</em> - The secret key for encryption.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - The encrypted data as a hexadecimal string.</li>
+</ul>
+<p><a id="usrv.secp256k1.aes_decrypt"></a></p>
+<h2 id="aes_decrypt">aes_decrypt</h2>
+<pre><code class="language-python">def aes_decrypt(data: str, secret: str) -&gt; str
+</code></pre>
+<p>Decrypts AES-encrypted data using a secret.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>data</code> <em>str</em> - The encrypted data as a hexadecimal string.</li>
+<li><code>secret</code> <em>str</em> - The secret key for decryption.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str|bool</code> - The decrypted plaintext data, or False if
+  decryption fails.</li>
+</ul>
+<p><a id="usrv.secp256k1.encrypt"></a></p>
+<h2 id="encrypt">encrypt</h2>
+<pre><code class="language-python">def encrypt(public_key: str, message: str) -&gt; typing.Tuple[str, str]
+</code></pre>
+<p>Encrypts a message using a public key.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>public_key</code> <em>str</em> - The base64-encoded public key.</li>
+<li><code>message</code> <em>str</em> - The plaintext message to encrypt.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>tuple</code> - A tuple containing the base64-encoded R value and the encrypted
+  message as a hexadecimal string.</li>
+</ul>
+<p><a id="usrv.secp256k1.decrypt"></a></p>
+<h2 id="decrypt">decrypt</h2>
+<pre><code class="language-python">def decrypt(private_key: int, R: str, ciphered: str) -&gt; str
+</code></pre>
+<p>Decrypts a message using a private key.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>private_key</code> <em>int</em> - The base64-encoded private key.</li>
+<li><code>R</code> <em>str</em> - The base64-encoded ephemeral public key.</li>
+<li><code>ciphered</code> <em>str</em> - The ciphered message to decrypt.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - Message as plaintext.</li>
+</ul></div>
+            </div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+                <p>Copyright &copy; 2024 THOORENS Bruno - BSD licence</p>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script src="../js/jquery-3.6.0.min.js"></script>
+        <script src="../js/bootstrap.min.js"></script>
+        <script>
+            var base_url = "..",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="../js/base.js"></script>
+        <script src="../search/main.js"></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="searchModalLabel">Search</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p>From here you can search these documents. Enter your search terms below.</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No results found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="keyboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="keyboardModalLabel">Keyboard Shortcuts</h4>
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>

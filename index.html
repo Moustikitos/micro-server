@@ -45,7 +45,7 @@
                                 <a href="request/" class="nav-link">Request</a>
                             </li>
                             <li class="navitem">
-                                <a href="wsgi-server/" class="nav-link">WSGI server</a>
+                                <a href="encryption/" class="nav-link">Encryption</a>
                             </li>
                         </ul>
 
@@ -86,7 +86,7 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#usrv-the-lightest-python-server" class="nav-link">usrv: the lightest python server</a>
+            <li class="nav-item" data-level="1"><a href="#usrv-the-lightest-python-web-framework" class="nav-link">usrv: the lightest python web framework</a>
               <ul class="nav flex-column">
             <li class="nav-item" data-level="2"><a href="#install" class="nav-link">Install</a>
               <ul class="nav flex-column">
@@ -120,6 +120,10 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-level="2"><a href="#changes" class="nav-link">Changes</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-level="2"><a href="#support-this-project" class="nav-link">Support this project</a>
               <ul class="nav flex-column">
               </ul>
@@ -131,12 +135,14 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="usrv-the-lightest-python-server"><code>usrv</code>: the lightest python server</h1>
+<h1 id="usrv-the-lightest-python-web-framework"><code>usrv</code>: the lightest python web framework</h1>
 <p><a href="https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a></p>
-<p>Package (<code>usrv</code>) is a pure python micro server implementation.</p>
+<p>Package (<code>usrv</code>) is a pure python micro server implementation. It allows python function bindings for all HTTP methods. HTTP body can be encrypted on demand using secp256k1 keypairs.</p>
 <h2 id="install">Install</h2>
+<h3 id="developpment-version">Developpment version</h3>
 <pre><code class="language-bash">$ python -m pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 </code></pre>
+<h3 id="last-version-041">last version (0.4.1)</h3>
 <pre><code class="language-bash">$ python -m pip install usrv
 </code></pre>
 <h2 id="usrvroute"><code>usrv.route</code></h2>
@@ -288,6 +294,17 @@ Options:
   -p PORT, --port=PORT  port to use                 [default: 5000]
 </code></pre>
 <p><code>BINDINGS</code> is a space-separated-list of python module names (ie no <code>*.py</code> extention) containing boud python functions. Modules containing bound functions have to be in one of <code>sys.path</code> folder. Specific folder can be added using <code>wsgi_srv.path</code> file.</p>
+<h2 id="changes">Changes</h2>
+<h3 id="041">0.4.1</h3>
+<ul class="task-list">
+<li class="task-list-item"><input type="checkbox" disabled checked/> major changes and improvement, no backward compatibility with 0.3.0</li>
+</ul>
+<h3 id="042-dev">0.4.2 (dev)</h3>
+<ul class="task-list">
+<li class="task-list-item"><input type="checkbox" disabled checked/> added body encryption/decryption based on <code>secp256k1</code> and <code>AES</code></li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> added multipart/form-data body to req module</li>
+<li class="task-list-item"><input type="checkbox" disabled checked/> added endpoint builder</li>
+</ul>
 <h2 id="support-this-project">Support this project</h2>
 <p><a href="https://liberapay.com/Toons/donate"><img alt="Liberapay receiving" src="https://img.shields.io/liberapay/goal/Toons?logo=liberapay" /></a>
 <a href="https://paypal.me/toons"><img alt="Paypal me" src="https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&amp;logoColor=white" /></a></p>
@@ -375,5 +392,5 @@ Options:
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2024-12-27 19:33:41.650179+00:00
+Build Date UTC : 2024-12-29 21:19:11.791864+00:00
 -->
