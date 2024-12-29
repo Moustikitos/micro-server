@@ -1,8 +1,8 @@
-# `usrv`: the lightest python server
+# `usrv`: the lightest python web framework
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE)
 
-Package (`usrv`) is a pure python micro server implementation.
+Package (`usrv`) is a pure python micro server implementation. It allows python function bindings for all HTTP methods. HTTP body can be encrypted on demand using secp256k1 keypairs.
 
 ## Install
 
@@ -219,6 +219,7 @@ Options:
 ### 0.4.2
 
 - [x] added body encryption/decryption based on `secp256k1` and `AES`
+- [x] added multipart/form-data body to req module
 
 ## Support this project
 
