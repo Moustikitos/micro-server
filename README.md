@@ -6,9 +6,13 @@ Package (`usrv`) is a pure python micro server implementation. It allows python 
 
 ## Install
 
+### Developpment version
+
 ```bash
 $ python -m pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 ```
+
+### last version (0.4.1)
 
 ```bash
 $ python -m pip install usrv
@@ -214,12 +218,13 @@ Options:
 
 ### 0.4.1
 
-- [x] version 0.3.0 improvement, no backward compatibility
+- [x] major changes and improvement, no backward compatibility with 0.3.0
 
-### 0.4.2
+### 0.4.2 (dev)
 
 - [x] added body encryption/decryption based on `secp256k1` and `AES`
 - [x] added multipart/form-data body to req module
+- [x] added endpoint builder
 
 ## Support this project
 

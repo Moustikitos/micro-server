@@ -47,7 +47,7 @@ def bip39_hash(secret: str, passphrase: str = "SALT") -> bytes:
 
 def y_from_x(x: int) -> int:
     """
-    Computes `y` from `x` according to `y²=x³+7`.
+    Computes y from x according to `secp256k1` equation.
     """
     y_sq = (pow(x, 3, P) + 7) % P
     y = pow(y_sq, (P + 1) // 4, P)

@@ -13,7 +13,6 @@ nav:
 - Serving: serving.md
 - Request: request.md
 - Encryption: encryption.md
-- WSGI server: wsgi-server.md
 repo_name: GitHub
 repo_url: https://github.com/Moustikitos/micro-server
 site_name: Python usrv project

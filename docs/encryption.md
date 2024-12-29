@@ -12,6 +12,56 @@ class EncryptionError(Exception)
 
 Custom exception for encryption errors.
 
+<a id="usrv.secp256k1.bip39_hash"></a>
+
+## bip39\_hash
+
+```python
+def bip39_hash(secret: str, passphrase: str = "SALT") -> bytes
+```
+
+Returns bip39 hash bytes string. This function does not check mnemonic
+integrity.
+
+**Arguments**:
+
+- `secret` _str_ - a mnemonic string.
+- `passphrase` _str_ - salt string.
+  
+
+**Returns**:
+
+- `bytes` - 64 length bytes string.
+
+<a id="usrv.secp256k1.y_from_x"></a>
+
+## y\_from\_x
+
+```python
+def y_from_x(x: int) -> int
+```
+
+Computes y from x according to `secp256k1` equation.
+
+<a id="usrv.secp256k1.decode"></a>
+
+## decode
+
+```python
+def decode(puk: str) -> tuple
+```
+
+Decompresses a compressed `secp256k1` point.
+
+**Arguments**:
+
+- `pubkey` _str_ - Compressed and encoded point.
+  
+
+**Returns**:
+
+- `tuple` - Point on `secp256k1` the curve.
+
 <a id="usrv.secp256k1.b64encode"></a>
 
 ## b64encode
@@ -141,7 +191,7 @@ Multiplies a point P by a scalar k on the elliptic curve.
 ## generate\_keypair
 
 ```python
-def generate_keypair()
+def generate_keypair(secret: str = None)
 ```
 
 Generates a private and public key pair for SECP256k1.

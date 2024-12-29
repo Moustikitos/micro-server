@@ -2,41 +2,6 @@
 
 # req
 
-__HTTP Client Module__
-
-
-This module provides a flexible and extensible framework for building, sending,
-and managing HTTP requests and responses. It includes support for dynamic
-endpoints, SSL configuration, and content decoding based on MIME types.
-
-## Classes
-  - RequestCache: a caching service for python HTTP Request.
-  - Endpoint: Represents an HTTP endpoint with dynamic attribute handling and
-    customizable request methods.
-
-## Functions
-  - build_request: Constructs HTTP requests with specified parameters and
-    headers.
-  - manage_response: Parses and decodes HTTP responses based on their MIME
-    types.
-
-## Constants
-  - CONTEXT: SSL context with disabled hostname verification.
-  - DECODERS: Dictionary mapping MIME types to their respective parsers.
-  - OPENER: Global HTTP request opener.
-
-## Endpoints
-Predefined instances of the `Endpoint` class for standard HTTP methods:
-  - CONNECT
-  - GET
-  - HEAD
-  - OPTION
-  - PATCH
-  - POST
-  - PUT
-  - TRACE
-  - DELETE
-
 This module is designed to handle common HTTP operations in a clean and
 reusable manner, with dynamic endpoint resolution and robust response
 management.
@@ -271,4 +236,27 @@ Tests connection to a peer endpoint and store it if success.
 **Returns**:
 
   typing.Union[int, bool]: HTTP status code or False on failure.
+
+<a id="usrv.req.build_endpoint"></a>
+
+## build\_endpoint
+
+```python
+def build_endpoint(http_req: str = "GET",
+                   encoder: Callable = json.dumps,
+                   timeout: int = Endpoint.timeout) -> Endpoint
+```
+
+Creates a root endpoint.
+
+**Arguments**:
+
+- `http_req` _str_ - Name of HTTP method (i.e. HEAD, GET, POST etc...).
+- `encoder` _Callable_ - Data encoder function to use.
+- `timeout` _int_ - Request timeout in seconds.
+  
+
+**Returns**:
+
+- `Endpoint` - Root endpoint.
 

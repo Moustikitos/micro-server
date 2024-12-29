@@ -46,8 +46,6 @@ renderer:
     - title: Encryption
       contents:
       - usrv.secp256k1.*
-    - title: WSGI server
-      source: ./docs/wsgi-server.md
 
   mkdocs_config:
     site_name: Python usrv project
