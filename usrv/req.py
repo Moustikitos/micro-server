@@ -93,7 +93,7 @@ import typing
 import hashlib
 import traceback
 
-from usrv import LOG
+from usrv import LOG, secp256k1
 from collections import OrderedDict
 from collections.abc import Callable
 from urllib.request import Request, OpenerDirector, HTTPHandler
@@ -101,6 +101,8 @@ from urllib.request import HTTPSHandler, FileHandler
 from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
 from http.client import HTTPResponse
 from collections import namedtuple
+
+PRIVATE_KEY, PUBLIC_KEY = secp256k1.generate_keypair()
 
 # namedtuple to match the internal signature of urlunparse
 Urltuple = namedtuple(
@@ -135,6 +137,10 @@ OPENER.add_handler(HTTPSHandler(context=CONTEXT))
 OPENER.add_handler(FileHandler())
 
 
+class RequestBuilderException(Exception):
+    pass
+
+
 def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
     """
     Builds an HTTP request object.
@@ -154,10 +160,14 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
     if cached_request is not None:
         return cached_request
 
-    encoder = kwargs.pop("encoder", urlencode)
-    peer = kwargs.pop("peer", False) or Endpoint.peer
-    headers = kwargs.pop("headers", {"User-Agent": "Python/usrv"})
     method = method.upper()
+    encoder = kwargs.pop("_encoder", urlencode)
+    peer = kwargs.pop("_peer", False) or Endpoint.peer
+    headers = dict({"User-Agent": "Python/usrv"}, **kwargs.pop("_headers", {}))
+    puk = kwargs.pop("_puk", None)
+
+    if peer is None:
+        raise RequestBuilderException("no peer to reach")
 
     if method in ["GET", "DELETE", "HEAD", "OPTION", "TRACE"]:
         query = urlencode(kwargs)
@@ -165,6 +175,11 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
     else:
         query = None
         data = encoder(kwargs)
+        if puk is not None:
+            R, data = secp256k1.encrypt(puk, data)
+            headers["Ephemeral-Public-Key"] = R
+            headers["Sender-Public-Key"] = PUBLIC_KEY
+            headers["Sender-Signature"] = secp256k1.sign(data+R, PRIVATE_KEY)
         data = data if isinstance(data, bytes) else data.encode("latin-1")
 
     headers["Content-Type"] = ENCODERS.get(encoder, "application/octet-stream")
@@ -188,14 +203,27 @@ def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
         typing.Union[dict, str]: Decoded response content.
     """
     content_type = resp.headers.get("content-type").lower()
-    text = resp.read()
-    text = text.decode(resp.headers.get_content_charset("latin-1")) \
-        if isinstance(text, bytes) else text
+    http_input = resp.read()
+    http_input = \
+        http_input.decode(resp.headers.get_content_charset("latin-1")) \
+        if isinstance(http_input, bytes) else http_input
+
+    puk = resp.headers.get("ephemeral-public-key", None)
+    sender_puk = resp.headers.get("sender-public-key", None)
+    signature = resp.headers.get("sender-signature", None)
+    if all([puk, sender_puk, signature]) and secp256k1.verify(
+        http_input+puk, signature, sender_puk
+    ):
+        decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
+        if decrypted is False:
+            raise secp256k1.EncryptionError(f"{http_input} - {puk}")
+        else:
+            http_input = decrypted
 
     if "text/" not in content_type:
-        text = DECODERS[content_type.split(";")[0].strip()](text)
+        http_input = DECODERS[content_type.split(";")[0].strip()](http_input)
 
-    return text
+    return http_input
 
 
 class RequestCache:
@@ -316,7 +344,7 @@ class Endpoint:
         """
         try:
             res = OPENER.open(
-                build_request("HEAD", peer=peer), timeout=Endpoint.timeout
+                build_request("HEAD", _peer=peer), timeout=Endpoint.timeout
             )
         except Exception as error:
             LOG.error("%r\n%s", error, traceback.format_exc())
@@ -330,7 +358,7 @@ class Endpoint:
 CONNECT = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("CONNECT", url, encoder=json.dumps, **parameters),
+            build_request("CONNECT", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -339,7 +367,7 @@ CONNECT = Endpoint(
 GET = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("GET", url, encoder=json.dumps, **parameters),
+            build_request("GET", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -348,7 +376,7 @@ GET = Endpoint(
 HEAD = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("HEAD", url, encoder=json.dumps, **parameters),
+            build_request("HEAD", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -357,7 +385,7 @@ HEAD = Endpoint(
 OPTION = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("OPTION", url, encoder=json.dumps, **parameters),
+            build_request("OPTION", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -366,7 +394,7 @@ OPTION = Endpoint(
 PATCH = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("PATCH", url, encoder=json.dumps, **parameters),
+            build_request("PATCH", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -375,7 +403,7 @@ PATCH = Endpoint(
 POST = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("POST", url, encoder=json.dumps, **parameters),
+            build_request("POST", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -384,7 +412,7 @@ POST = Endpoint(
 PUT = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("PUT", url, encoder=json.dumps, **parameters),
+            build_request("PUT", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -393,7 +421,7 @@ PUT = Endpoint(
 TRACE = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("TRACE", url, encoder=json.dumps, **parameters),
+            build_request("TRACE", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )
@@ -402,7 +430,7 @@ TRACE = Endpoint(
 DELETE = Endpoint(
     method=lambda url, **parameters: manage_response(
         OPENER.open(
-            build_request("DELETE", url, encoder=json.dumps, **parameters),
+            build_request("DELETE", url, _encoder=json.dumps, **parameters),
             timeout=Endpoint.timeout
         )
     )

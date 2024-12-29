@@ -23,6 +23,7 @@ Options:
 `BINDINGS` is a list of python modules containing python bound functions.
 """
 
+import os
 import re
 import ssl
 import sys
@@ -34,10 +35,12 @@ import traceback
 
 import urllib.parse as urlparse
 
-from usrv import LOG
+from usrv import LOG, secp256k1
 from collections.abc import Callable
 from collections import OrderedDict, namedtuple
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+PRIVATE_KEY, PUBLIC_KEY = secp256k1.generate_keypair()
 
 # Regex for extracting dynamic segments from URLs.
 MARKUP_PATTERN = re.compile("<([^><]*)>")
@@ -124,9 +127,24 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
             else "http://%s:%s%s"
         ) % (self.server.server_address + (self.path, ))
         headers = dict([k.lower(), v] for k, v in dict(self.headers).items())
-        path = urlparse.urlparse(self.path).path
+
+        # manage encrypted body
+        puk = headers.get("ephemeral-public-key", None)
+        sender_puk = headers.get("sender-public-key", None)
+        signature = headers.get("sender-signature", None)
+        if all([puk, sender_puk, signature]) and secp256k1.verify(
+            http_input+puk, signature, sender_puk
+        ):
+            decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
+            if decrypted is False:
+                self.send_error(500, f"Encryption error: {http_input} - {puk}")
+                self.end_headers()
+                return 0
+            else:
+                http_input = decrypted
 
         # Loop through registered endpoints for the given method.
+        path = urlparse.urlparse(self.path).path
         endpoints = getattr(uHTTPRequestHandler, "ENDPOINTS", object())
         for regexp, callback in getattr(endpoints, method, {}).items():
             if regexp.match(path):
@@ -139,14 +157,21 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                         f"python function {callback} did not return a valid "
                         f"response:\n{error}\n{traceback.format_exc()}"
                     )
-                    self.send_error(406)
+                    self.send_error(
+                        406,
+                        f"python function {callback} did not return a valid "
+                        f"response"
+                    )
                     self.end_headers()
                 except Exception as error:
                     LOG.error(
                         f"python function {callback} failed during execution:"
                         f"\n{error}\n{traceback.format_exc()}"
                     )
-                    self.send_error(500)
+                    self.send_error(
+                        500,
+                        f"python function {callback} failed during execution"
+                    )
                     self.end_headers()
                     return 0
 
@@ -155,7 +180,11 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                         f"first value returned by {callback} should be an "
                         "HTTP response status code (ie integer)"
                     )
-                    self.send_error(406)
+                    self.send_error(
+                        406,
+                        f"first value returned by {callback} should be an "
+                        "HTTP response status code (ie integer)"
+                    )
                     self.end_headers()
                     return 0
                 elif status >= 400:
@@ -164,15 +193,24 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                     return 0
                 else:
                     data, content_type = self.format_response(result)
+                    self.send_response(status)
+                    if sender_puk is not None:
+                        R, data = secp256k1.encrypt(sender_puk, data)
+                        self.send_header("Ephemeral-Public-Key", R)
+                        self.send_header("Sender-Public-Key", PUBLIC_KEY)
+                        self.send_header(
+                            "Sender-Signature",
+                            secp256k1.sign(data+R, PRIVATE_KEY)
+                        )
                     if isinstance(data, str):
                         data = data.encode("latin-1")
-                    self.send_response(status)
                     self.send_header('Content-Type', content_type)
                     self.send_header('Content-length', len(data))
                     self.end_headers()
                     return self.wfile.write(data)
+
         # if for loop exit, then no endpoint found
-        self.send_error(404)
+        self.send_error(404, "Endpoint not defined")
         self.end_headers()
         return 0
 
@@ -367,8 +405,14 @@ if __name__ == "__main__":
 
     # If no modules are specified in the command line, register default routes.
     if len(args) == 0:
+
         # Default route for testing without arguments.
-        @bind("/")
+        @bind("/puk")
+        def test() -> tuple:
+            return 200, PUBLIC_KEY
+
+        # Default route for testing without arguments.
+        @bind("/", methods=["HEAD"])
         def test0() -> tuple:
             """
             A test endpoint that returns a success message.
@@ -396,7 +440,7 @@ if __name__ == "__main__":
             return 200, a, b, c, args
 
         # Test route demonstrating **kwargs handling.
-        @bind("/kwargs")
+        @bind("/kwargs", methods=["GET", "POST"])
         def test2(name, a, b=2, **kwargs) -> tuple:
             """
             A test endpoint to demonstrate keyword arguments.
