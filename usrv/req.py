@@ -143,18 +143,20 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
     else:
         query = None
         data = encoder(kwargs)
+        headers["Content-Type"] = ENCODERS.get(
+            encoder, "application/octet-stream"
+        )
+        # get boundary value from data in cae of multipart/form-data
+        if "multipart" in headers["Content-Type"]:
+            boundary = re.match(b".*--([0-9a-f]+).*", data).groups()[0]
+            headers["Content-Type"] += \
+                "; boundary=" + boundary.decode("latin-1")
         if puk is not None:
             R, data = secp256k1.encrypt(puk, data)
             headers["Ephemeral-Public-Key"] = R
             headers["Sender-Public-Key"] = PUBLIC_KEY
             headers["Sender-Signature"] = secp256k1.sign(data+R, PRIVATE_KEY)
         data = data if isinstance(data, bytes) else data.encode("latin-1")
-
-    headers["Content-Type"] = ENCODERS.get(encoder, "application/octet-stream")
-    # get boundary value from data in cae of multipart/form-data
-    if "multipart" in headers["Content-Type"]:
-        boundary = re.match(b".*--([0-9a-f]+).*", data).groups()[0]
-        headers["Content-Type"] += "; boundary=" + boundary.decode("latin-1")
 
     req = Request(
         urlunparse(urlparse(peer)._replace(path=path, query=query)),

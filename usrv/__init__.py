@@ -23,6 +23,7 @@ requests and responses.
 - Flexible response handling: Customize responses based on the request
   method and URL.
 - Error management: Handle common HTTP errors with appropriate status codes.
+- Encryption: server and client side HTTP body encryption on demand.
 
 ## Usage:
 To use this package, import the relevant modules and define your endpoints
