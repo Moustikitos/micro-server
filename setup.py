@@ -18,7 +18,9 @@ kw = {
     "url": "https://moustikitos.github.io/micro-server",
     "project_urls": {  # Optional
         "Bug Reports": "https://github.com/Moustikitos/micro-server/issues",
-        "Funding": "https://github.com/Moustikitos/micro-server/?tab=readme-ov-file#support-this-project",
+        "Funding":
+            "https://github.com/Moustikitos/micro-server/?tab=readme-ov-file#s"
+            "upport-this-project",
         "Source": "https://github.com/Moustikitos/micro-server",
     },
     "download_url":
@@ -28,7 +30,7 @@ kw = {
     "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
     "packages": ["usrv"],
-    "install_requires": ["waitress"],
+    "install_requires": ["waitress", "pyaes"],
     "license": "Cpyright 2020 - 2021 THOORENS Bruno",
     "classifiers": [
         "Development Status :: 3 - Alpha",
