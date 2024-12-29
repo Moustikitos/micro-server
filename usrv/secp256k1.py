@@ -6,6 +6,7 @@ import pyaes
 import typing
 import base64
 import hashlib
+import unicodedata
 
 from binascii import hexlify, unhexlify
 
@@ -23,6 +24,25 @@ G = (
 class EncryptionError(Exception):
     """Custom exception for encryption errors."""
     pass
+
+
+def bip39_hash(secret: str, passphrase: str = "SALT") -> bytes:
+    """
+    Returns bip39 hash bytes string. This function does not check mnemonic
+    integrity.
+
+    Args:
+        secret (str): a mnemonic string.
+        passphrase (str): salt string.
+
+    Returns:
+        bytes: 64 length bytes string.
+    """
+    return hashlib.pbkdf2_hmac(
+        "sha512", unicodedata.normalize("NFKD", secret).encode("utf-8"),
+        unicodedata.normalize("NFKD", f"mnemonic{passphrase}").encode("utf-8"),
+        iterations=2048, dklen=64
+    )
 
 
 def y_from_x(x: int) -> int:
@@ -177,7 +197,7 @@ def point_multiply(k: int, C: tuple) -> tuple:
 
 
 # Génération de clé privée et publique
-def generate_keypair():
+def generate_keypair(secret: str = None):
     """
     Generates a private and public key pair for SECP256k1.
 
@@ -185,7 +205,10 @@ def generate_keypair():
         tuple: A tuple containing the private key (int) and the base64-encoded
             public key.
     """
-    private_key = int.from_bytes(os.urandom(32), 'big') % N
+    if secret is not None:
+        private_key = int.from_bytes(bip39_hash(secret)) % N
+    else:
+        private_key = int.from_bytes(os.urandom(32), 'big') % N
     public_key = point_multiply(private_key, G)
     return private_key, b64encode(public_key)
 
