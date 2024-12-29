@@ -43,6 +43,9 @@ renderer:
     - title: Request
       contents:
       - usrv.req.*
+    - title: Encryption
+      contents:
+      - usrv.secp256k1.*
     - title: WSGI server
       source: ./docs/wsgi-server.md
 

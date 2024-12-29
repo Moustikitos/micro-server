@@ -210,6 +210,16 @@ Options:
 
 `BINDINGS` is a space-separated-list of python module names (ie no `*.py` extention) containing boud python functions. Modules containing bound functions have to be in one of `sys.path` folder. Specific folder can be added using `wsgi_srv.path` file.
 
+## Changes
+
+### 0.4.1
+
+- [x] version 0.3.0 improvement, no backward compatibility
+
+### 0.4.2
+
+- [x] added body encryption/decryption based on `secp256k1` and `AES`
+
 ## Support this project
 
 [![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate)
