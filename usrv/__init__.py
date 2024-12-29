@@ -36,6 +36,8 @@ import io
 import os
 import json
 import logging
+import binascii
+import mimetypes
 
 # set basic logging
 logging.basicConfig()
@@ -60,7 +62,6 @@ def loadJson(name, folder=None):
         del in_
     except Exception:
         pass
-    #
     return data
 
 
@@ -79,4 +80,85 @@ def dumpJson(data, name, folder=None):
         del out
     except Exception:
         pass
-    #
+
+
+class FormData(list):
+    """
+    ~ [RFC#7578](https://datatracker.ietf.org/doc/html/rfc7578)
+    Implementation of multipart/form-data encoder.
+    """
+
+    def append_json(self, name, value={}, **kwval):
+        list.append(self, {
+            "name": name,
+            "data": json.dumps(
+                dict(value, **kwval), sort_keys=True, separators=(",", ":")
+            ).encode(),
+            "headers": {"Content-Type": "application/json"}
+        })
+        return self
+
+    def append_value(self, name, value, **headers):
+        list.append(self, {
+            "name": name,
+            "data": value if isinstance(value, bytes) else (
+                "%s" % value
+            ).encode(),
+            "headers": dict({"Content-Type": "text/plain"}, **headers)
+        })
+        return self
+
+    def append_file(self, name, path):
+        if os.path.isfile(path):
+            list.append(self, {
+                "name": name,
+                "filename": os.path.basename(path),
+                "headers": {
+                    "Content-Type": (
+                        mimetypes.guess_type(path)[0] or
+                        "application/octet-stream"
+                    )
+                },
+                "data": open(path, "rb").read()
+            })
+        else:
+            raise IOError("file %s not found" % path)
+        return self
+
+    def dumps(self):
+        body = b""
+        boundary = binascii.hexlify(os.urandom(16))
+
+        for value in [dict(v) for v in self]:
+            field = value.pop("name").encode()
+            data = value.pop("data")
+            headers = value.pop("headers")
+
+            body += b'--' + boundary + b'\r\n'
+            body += b'Content-Disposition: form-data; name="%s"; ' % field
+            body += '; '.join(
+                ['%s="%s"' % (n, v) for n, v in value.items()]
+            ).encode() + b'\r\n'
+            body += '\r\n'.join(
+                ['%s: %s' % (n, v) for n, v in headers.items()]
+            ).encode() + b'\r\n'
+            body += b'\r\n' + data + b'\r\n'
+
+        body += b'--' + boundary + b'--\r\n'
+        return body, f"multipart/form-data; boundary={boundary.decode()}"
+
+    @staticmethod
+    def encode(data: dict):
+        result = FormData()
+        for name, value in data.items():
+            if isinstance(value, FormData):
+                result.extend(value)
+            elif os.path.isfile(value):
+                result.append_file(name, value)
+            else:
+                result.append_value(name, value)
+        return result.dumps()[0].decode("utf-8")
+
+    @staticmethod
+    def decode(data: str):
+        return FormData()

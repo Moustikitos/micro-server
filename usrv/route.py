@@ -23,7 +23,6 @@ Options:
 `BINDINGS` is a list of python modules containing python bound functions.
 """
 
-import os
 import re
 import ssl
 import sys
@@ -407,13 +406,8 @@ if __name__ == "__main__":
     if len(args) == 0:
 
         # Default route for testing without arguments.
-        @bind("/puk")
-        def test() -> tuple:
-            return 200, PUBLIC_KEY
-
-        # Default route for testing without arguments.
         @bind("/", methods=["HEAD"])
-        def test0() -> tuple:
+        def test() -> tuple:
             """
             A test endpoint that returns a success message.
 
@@ -421,6 +415,11 @@ if __name__ == "__main__":
                 tuple: HTTP status code and response body.
             """
             return 200, "Test page"
+
+        # Endpoint returning server public key.
+        @bind("/puk")
+        def test0() -> tuple:
+            return 200, PUBLIC_KEY
 
         # Test route demonstrating *args handling.
         @bind("/vargs")

@@ -93,7 +93,7 @@ import typing
 import hashlib
 import traceback
 
-from usrv import LOG, secp256k1
+from usrv import LOG, secp256k1, FormData
 from collections import OrderedDict
 from collections.abc import Callable
 from urllib.request import Request, OpenerDirector, HTTPHandler
@@ -123,12 +123,14 @@ CONTEXT.options |= ssl.OP_NO_TLSv1_1
 DECODERS = {
     "application/x-www-form-urlencoded": parse_qsl,
     "application/json": json.loads,
+    "multipart/form-data": FormData.decode,
     "application/octet-stream": lambda o: o
 }
 
 ENCODERS = {
     urlencode: "application/x-www-form-urlencoded",
     json.dumps: "application/json",
+    FormData.encode: "multipart/form-data"
 }
 
 OPENER = OpenerDirector()
@@ -183,6 +185,11 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
         data = data if isinstance(data, bytes) else data.encode("latin-1")
 
     headers["Content-Type"] = ENCODERS.get(encoder, "application/octet-stream")
+    # get boundary value from data in cae of multipart/form-data
+    if "multipart" in headers["Content-Type"]:
+        boundary = re.match(b".*--([0-9a-f]+).*", data).groups()[0]
+        headers["Content-Type"] += "; boundary=" + boundary.decode("latin-1")
+
     req = Request(
         urlunparse(urlparse(peer)._replace(path=path, query=query)),
         data, headers
@@ -354,84 +361,29 @@ class Endpoint:
         return False
 
 
-# HTTP method root endpoints
-CONNECT = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("CONNECT", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
+def build_endpoint(
+    http_req: str = "GET", encoder: Callable = json.dumps,
+    timeout: int = Endpoint.timeout
+) -> Endpoint:
+    return Endpoint(
+        method=lambda url, **parameters: manage_response(
+            OPENER.open(
+                build_request(
+                    http_req, url, _encoder=encoder or urlencode, **parameters
+                ), timeout=Endpoint.timeout
+            )
         )
     )
-)
 
-GET = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("GET", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
 
-HEAD = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("HEAD", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
-
-OPTION = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("OPTION", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
-
-PATCH = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("PATCH", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
-
-POST = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("POST", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
-
-PUT = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("PUT", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
-
-TRACE = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("TRACE", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
-
-DELETE = Endpoint(
-    method=lambda url, **parameters: manage_response(
-        OPENER.open(
-            build_request("DELETE", url, _encoder=json.dumps, **parameters),
-            timeout=Endpoint.timeout
-        )
-    )
-)
+# build json endpoints (ie HTTP body will be encoded as JSON)
+CONNECT = build_endpoint("CONNECT")
+GET = build_endpoint("GET")
+HEAD = build_endpoint("HEAD")
+OPTION = build_endpoint("OPTION")
+PATCH = build_endpoint("PATCH")
+POST = build_endpoint("POST")
+PUT = build_endpoint("PUT")
+TRACE = build_endpoint("TRACE")
+DELETE = build_endpoint("DELETE")
+CONNECT = build_endpoint("CONNECT")
