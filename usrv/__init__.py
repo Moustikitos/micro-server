@@ -48,6 +48,7 @@ logging.basicConfig()
 LOG = logging.getLogger("usrv")
 # configuration pathes
 ROOT = os.path.abspath(os.path.dirname(__file__))
+DATA = os.path.abspath(os.path.join(ROOT, ".data"))
 JSON = os.path.abspath(os.path.join(ROOT, ".json"))
 __path__.append(os.path.abspath(os.path.join(ROOT, "plugins")))
 
@@ -97,7 +98,7 @@ class FormData(list):
             "name": name,
             "data": json.dumps(
                 dict(value, **kwval), sort_keys=True, separators=(",", ":")
-            ).encode(),
+            ).encode("latin-1"),
             "headers": {"Content-Type": "application/json"}
         })
         return self
@@ -109,7 +110,7 @@ class FormData(list):
             "name": name,
             "data": value if isinstance(value, bytes) else (
                 "%s" % value
-            ).encode(),
+            ).encode("latin-1"),
             "headers": dict({"Content-Type": "text/plain"}, **headers)
         })
         return self
@@ -136,7 +137,7 @@ class FormData(list):
         boundary = binascii.hexlify(os.urandom(16))
 
         for value in [dict(v) for v in self]:
-            field = value.pop("name").encode()
+            field = value.pop("name").encode("latin-1")
             data = value.pop("data")
             headers = value.pop("headers")
 
@@ -144,17 +145,39 @@ class FormData(list):
             body += b'Content-Disposition: form-data; name="%s"; ' % field
             body += '; '.join(
                 ['%s="%s"' % (n, v) for n, v in value.items()]
-            ).encode() + b'\r\n'
-            body += '\r\n'.join(
-                ['%s: %s' % (n, v) for n, v in headers.items()]
-            ).encode() + b'\r\n'
+            ).encode("latin-1") + b'\r\n'
+            body += (
+                '\r\n'.join(
+                    ['%s: %s' % (n, v) for n, v in headers.items()]
+                ).encode("latin-1") + b"\r\n"
+            ) or b'\r\n'
             body += b'\r\n' + data + b'\r\n'
 
-        body += b'--' + boundary + b'--\r\n'
-        return body, f"multipart/form-data; boundary={boundary.decode()}"
+        body += b'--' + boundary + b'--'
+        return body, \
+            f"multipart/form-data; boundary={boundary.decode("latin-1")}"
 
     def dump(self) -> None:
-        pass
+        boundary = binascii.hexlify(os.urandom(16)).decode("utf-8")
+        root_folder = os.path.join(DATA, boundary)
+        os.makedirs(root_folder, exist_ok=True)
+        for elem in self:
+            content_type = elem["headers"].get(
+                "Content-Type", "application/octet-stream"
+            )
+            filename = elem.get("name", "undefined")
+            ext = mimetypes.guess_extension(content_type) \
+                or f".{content_type.replace('/', '.')}"
+            with open(
+                os.path.join(root_folder, f"{filename}{ext}"), "wb"
+            ) as out:
+                out.write(elem.get("data", b""))
+            dumpJson(
+                dict(
+                    [k, v] for k, v in elem.items()
+                    if k not in ["data", "name"]
+                ), f"{filename}.values", root_folder
+            )
 
     @staticmethod
     def encode(data: dict) -> str:
@@ -166,42 +189,44 @@ class FormData(list):
                 result.append_file(name, value)
             else:
                 result.append_value(name, value)
-        return result.dumps()[0].decode("utf-8")
+        return result.dumps()[0].decode("latin-1")
 
     @staticmethod
     def decode(data: str) -> typing.Any:
         result = FormData()
-        boundary = re.match(".*--([0-9a-f]+).*", data).groups()[0]
-        items, tmp = [], []
-        for line in data.split("\r\n"):
-            if f"--{boundary}" in line:
-                if len(tmp):
-                    desc = ""
-                    for t in tmp:
-                        if t == "":
-                            break
-                        else:
-                            desc += t
-                    items.append((desc, tmp[-1]))
-                tmp = []
+        boundary = re.match(".*(--[0-9a-f]+).*", data).groups()[0]
+
+        frames = []
+        # define frames by scanning lines
+        for line in data.split("\r\n")[:-1]:
+            if line == boundary:
+                frames.append("")
             else:
-                tmp.append(line)
-        for desc, data in items:
+                frames[-1] += line + "\r\n"
+
+        for frame in frames:
+            # separate lines to find void one (separator between info and data)
+            splited = frame.split("\r\n")
+            separator_index = splited.index("")
+            # rebuild info and data
+            info = "\r\n".join(splited[:separator_index])
+            data = "\r\n".join(splited[separator_index+1:])
+            # get all values from info
             values = dict(
-                elem.replace('"', '').split("=") for elem in
-                re.findall(r'([\w-]*[\s]*=[\s]*"[\S]*")', desc)
+                elem.replace('"', '').split("=")
+                for elem in re.findall(r'([\w-]*[\s]*=[\s]*"[\S]*")', info)
             )
+            # get headers from info
             headers = dict(
-                elem.strip().replace(" ", "").split(":") for elem in
-                re.findall(r'([\w-]*[\s]*:[\s]*"[\S]*")', desc)
+                elem.strip().replace(" ", "").split(":")
+                for elem in re.findall(r'([\w-]*[\s]*:[\s]*[\S]*)', info)
             )
-            headers.pop("Content-Disposition", False)
-            name = values.pop("name")
+            # append item
             result.append(
-                dict({
-                    "name": name,
-                    "data": data.encode(),
-                    "headers": headers
-                }, **values)
+                dict(
+                    name=values.pop("name", "undefined"),
+                    data=data.encode("latin-1"), headers=headers, **values
+                )
             )
+
         return result
