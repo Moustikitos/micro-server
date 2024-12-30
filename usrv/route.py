@@ -136,7 +136,10 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
         ):
             decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
             if decrypted is False:
-                self.send_error(500, f"Encryption error: {http_input} - {puk}")
+                self.send_error(
+                    500, "Encryption error",
+                    f"{http_input} not encrypted for public key {PUBLIC_KEY}"
+                )
                 self.end_headers()
                 return 0
             else:
@@ -371,7 +374,7 @@ def run(host: str = "127.0.0.1", port: int = 5000, loglevel: int = 20) -> None:
     LOG.setLevel(20)
     httpd = HTTPServer((host, port), uHTTPRequestHandler)
     try:
-        LOG.info("listening on %s:%s\nCTRL+C to stop...", host, port)
+        LOG.info("listening on http://%s:%s\nCTRL+C to stop...", host, port)
         httpd.serve_forever()
     except KeyboardInterrupt:
         LOG.info("server stopped")

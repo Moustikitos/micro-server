@@ -54,9 +54,12 @@ def wsgi_call(
     ):
         decrypted = secp256k1.decrypt(route.PRIVATE_KEY, puk, http_input)
         if decrypted is False:
-            LOG.error(f"Encryption error: {http_input} - {puk}")
+            LOG.error(
+                "Encryption error:\n"
+                f"{http_input} not encrypted for public key {route.PUBLIC_KEY}"
+            )
             start_response("500", ())
-            return [b""]
+            return [b"encryption error"]
         else:
             http_input = decrypted
 
