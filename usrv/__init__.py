@@ -17,6 +17,7 @@ requests and responses.
 - req: Provides a light request interface and with a pythonic way to access
   remote resources.
 - app: Provides the root app to be run behind WSGI for production mode.
+- secp256k1: Provides all functions for ECIES encryption and ECDSA signature.
 
 ## Features:
 - Route binding: Easily bind URL patterns to Python functions.
@@ -35,7 +36,9 @@ For more details, see the documentation and examples in the respective modules.
 
 import io
 import os
+import re
 import json
+import typing
 import logging
 import binascii
 import mimetypes
@@ -49,7 +52,7 @@ JSON = os.path.abspath(os.path.join(ROOT, ".json"))
 __path__.append(os.path.abspath(os.path.join(ROOT, "plugins")))
 
 
-def loadJson(name, folder=None):
+def loadJson(name: str, folder: str = None) -> typing.Any:
     filename = os.path.join(JSON if not folder else folder, name)
     if os.path.exists(filename):
         with io.open(filename, "r", encoding="utf-8") as in_:
@@ -66,7 +69,7 @@ def loadJson(name, folder=None):
     return data
 
 
-def dumpJson(data, name, folder=None):
+def dumpJson(data: typing.Any, name: str, folder: str = None) -> None:
     filename = os.path.join(JSON if not folder else folder, name)
     try:
         os.makedirs(os.path.dirname(filename))
@@ -89,7 +92,7 @@ class FormData(list):
     Implementation of multipart/form-data encoder.
     """
 
-    def append_json(self, name, value={}, **kwval):
+    def append_json(self, name: str, value: dict = {}, **kwval) -> typing.Any:
         list.append(self, {
             "name": name,
             "data": json.dumps(
@@ -99,7 +102,9 @@ class FormData(list):
         })
         return self
 
-    def append_value(self, name, value, **headers):
+    def append_value(
+        self, name: str, value: typing.Union[str, bytes], **headers
+    ) -> typing.Any:
         list.append(self, {
             "name": name,
             "data": value if isinstance(value, bytes) else (
@@ -109,7 +114,7 @@ class FormData(list):
         })
         return self
 
-    def append_file(self, name, path):
+    def append_file(self, name: str, path: str) -> typing.Any:
         if os.path.isfile(path):
             list.append(self, {
                 "name": name,
@@ -126,7 +131,7 @@ class FormData(list):
             raise IOError("file %s not found" % path)
         return self
 
-    def dumps(self):
+    def dumps(self) -> str:
         body = b""
         boundary = binascii.hexlify(os.urandom(16))
 
@@ -148,8 +153,11 @@ class FormData(list):
         body += b'--' + boundary + b'--\r\n'
         return body, f"multipart/form-data; boundary={boundary.decode()}"
 
+    def dump(self) -> None:
+        pass
+
     @staticmethod
-    def encode(data: dict):
+    def encode(data: dict) -> str:
         result = FormData()
         for name, value in data.items():
             if isinstance(value, FormData):
@@ -161,5 +169,39 @@ class FormData(list):
         return result.dumps()[0].decode("utf-8")
 
     @staticmethod
-    def decode(data: str):
-        return FormData()
+    def decode(data: str) -> typing.Any:
+        result = FormData()
+        boundary = re.match(".*--([0-9a-f]+).*", data).groups()[0]
+        items, tmp = [], []
+        for line in data.split("\r\n"):
+            if f"--{boundary}" in line:
+                if len(tmp):
+                    desc = ""
+                    for t in tmp:
+                        if t == "":
+                            break
+                        else:
+                            desc += t
+                    items.append((desc, tmp[-1]))
+                tmp = []
+            else:
+                tmp.append(line)
+        for desc, data in items:
+            values = dict(
+                elem.replace('"', '').split("=") for elem in
+                re.findall(r'([\w-]*[\s]*=[\s]*"[\S]*")', desc)
+            )
+            headers = dict(
+                elem.strip().replace(" ", "").split(":") for elem in
+                re.findall(r'([\w-]*[\s]*:[\s]*"[\S]*")', desc)
+            )
+            headers.pop("Content-Disposition", False)
+            name = values.pop("name")
+            result.append(
+                dict({
+                    "name": name,
+                    "data": data.encode(),
+                    "headers": headers
+                }, **values)
+            )
+        return result
