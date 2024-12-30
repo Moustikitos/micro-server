@@ -10,7 +10,6 @@ processors:
 hooks:
   pre-render:
   - python -c "import os;os.makedirs('./docs', exist_ok=True)"
-  - pydoc-markdown -m wsgi_srv > ./docs/wsgi-server.md
 
 renderer:
   output_directory: .
@@ -33,7 +32,8 @@ renderer:
   pages:
     - title: Home
       name: index
-      source: readme.md
+      contents:
+      - usrv
     - title: Bindings
       contents:
       - usrv.route.*
