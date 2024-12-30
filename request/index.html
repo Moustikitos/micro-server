@@ -121,12 +121,18 @@
 reusable manner, with dynamic endpoint resolution and robust response
 management.</p>
 <p><strong>Let&rsquo;s run a micro server:</strong></p>
-<pre><code class="language-python">from usrv import route
+<pre><code class="language-python"># test.py
+from usrv import route
 
 # allow req.Endpoint.connect
 @route.bind(&quot;/&quot;, methods=[&quot;HEAD&quot;])
 def base():
     return 200,
+
+# public key endoint for encryption
+@route.bind(&quot;/puk&quot;, methods=[&quot;GET&quot;])
+def puk():
+    return 200, route.PUBLIC_KEY
 
 @route.bind(&quot;/index&quot;)
 def index(*args):
@@ -136,24 +142,84 @@ def index(*args):
 def endpoit(a, b, **kwargs):
     method = kwargs[&quot;method&quot;]
     if method == &quot;POST&quot;:
-        return 202,
+        return 202, kwargs[&quot;data&quot;]
     elif method == &quot;GET&quot;:
-        return 200, a, b, kwargs
+        return 200, a, b
     else:
         return 404,
 
 route.run(host='127.0.0.1', port=5000)
 </code></pre>
-<p><strong>execute simple requests:</strong></p>
+<pre><code class="language-bash">$ python path/to/test.py
+INFO:usrv:listening on http://127.0.0.1:5000
+CTRL+C to stop...
+</code></pre>
+<p><strong>Connect to a peer</strong></p>
+<p>Remote path <code>/</code> allows HEAD request:</p>
 <pre><code class="language-python">&gt;&gt;&gt; from usrv import req
 &gt;&gt;&gt; req.Endpoint.connect(&quot;http://127.0.0.1:5000&quot;)
 200
-&gt;&gt;&gt; req.GET.index()
-[{'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, None]
-&gt;&gt;&gt; req.GET.api.endpoint()
-[None, None, {'headers': {'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connection': 'close'}, 'data': None}]
-&gt;&gt;&gt; req.POST.api.endpoint()
-[]
+</code></pre>
+<p>Else, maunally set peer to <code>req.Endpoint</code> or use <code>_peer</code> keyword on each
+request :</p>
+<pre><code class="language-python">&gt;&gt;&gt; from usrv import req
+&gt;&gt;&gt; req.ENDPOINT.peer = &quot;http://127.0.0.1:5000&quot;
+&gt;&gt;&gt; # or
+&gt;&gt;&gt; req.GET.api.endpoint(_peer=&quot;http://127.0.0.1:5000&quot;)
+&gt;&gt;&gt; req.POST.api.endpoint(_peer=&quot;http://127.0.0.1:5000&quot;)
+&gt;&gt;&gt; # ...
+</code></pre>
+<p><strong>Endpoints</strong></p>
+<pre><code class="language-python">&gt;&gt;&gt; # GET http://127.0.0.1:5000/puk
+&gt;&gt;&gt; req.GET.puk()
+[&quot;pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==&quot;]
+&gt;&gt;&gt; # GET http://127.0.0.1:5000/api/endpoints?a=12&amp;b=test
+&gt;&gt;&gt; req.GET.api.endpoint(a=12, b=&quot;test&quot;)
+[&quot;12&quot;, &quot;test&quot;]
+&gt;&gt;&gt; # POST data to http://127.0.0.1:5000/api/endpoints
+&gt;&gt;&gt; req.POST.api.endpoint(value1=1, value2=2)
+['{&quot;value1&quot;: 1, &quot;value2&quot;: 2}']
+</code></pre>
+<p><strong>Encrypt HTTP body</strong></p>
+<pre><code class="language-python">&gt;&gt;&gt; # encrypt only server body response
+&gt;&gt;&gt; req.POST.api.endpoint(
+...   value1=1, value2=2, _headers={&quot;Sender-Public-Key:req.PUBLIC_KEY}
+... )
+['{&quot;value1&quot;: 1, &quot;value2&quot;: 2}']
+&gt;&gt;&gt; # encrypt request and response bodies
+&gt;&gt;&gt; puk = req.GET.puk()[0]
+&gt;&gt;&gt; puk
+pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==
+&gt;&gt;&gt; req.POST.api.endpoint(value1=1, value2=2, _puk=puk)
+['{&quot;value1&quot;: 1, &quot;value2&quot;: 2}']
+</code></pre>
+<pre><code class="language-python">&gt;&gt;&gt; from usrv import secp256k1
+&gt;&gt;&gt; # generate a random keypair
+&gt;&gt;&gt; prk, puk = secp256k1.generate_keypair()
+&gt;&gt;&gt; # target public key is not server public key
+&gt;&gt;&gt; puk == req.GET.puk()[0]
+False
+&gt;&gt;&gt; print(req.POST.api.endpoints(value1=1, value2=2, _puk=puk))
+&lt;!DOCTYPE HTML&gt;
+&lt;html lang=&quot;en&quot;&gt;
+    &lt;head&gt;
+        &lt;meta charset=&quot;utf-8&quot;&gt;
+        &lt;title&gt;Error response&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+    &lt;h1&gt;Error response&lt;/h1&gt;
+        &lt;p&gt;Error code: 500&lt;/p&gt;
+        &lt;p&gt;Message: Encryption error.&lt;/p&gt;
+        &lt;p&gt;Error code explanation: 5e234e6f68f30a056c2bd53e97b785e49895b1ae85d3cf323a95ot encrypted for public key pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==.&lt;/p&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+&gt;&gt;&gt; req.POST.api.endpoint(
+...   value1=1, value2=2, _headers={&quot;Sender-Public-Key&quot;:puk}
+... )
+ERROR:usrv:Encryption error:
+cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39 not encrypted for public key pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==
+'cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39'
+&gt;&gt;&gt;
 </code></pre>
 <p><a id="usrv.req.build_request"></a></p>
 <h2 id="build_request">build_request</h2>

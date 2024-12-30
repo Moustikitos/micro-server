@@ -86,45 +86,17 @@
     <div id="toc-collapse" class="navbar-collapse collapse card bg-secondary">
         <ul class="nav flex-column">
             
-            <li class="nav-item" data-level="1"><a href="#usrv-the-lightest-python-web-framework" class="nav-link">usrv: the lightest python web framework</a>
+            <li class="nav-item" data-level="1"><a href="#usrv" class="nav-link">usrv</a>
               <ul class="nav flex-column">
-            <li class="nav-item" data-level="2"><a href="#install" class="nav-link">Install</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#usrvroute" class="nav-link">usrv.route</a>
+            <li class="nav-item" data-level="2"><a href="#modules" class="nav-link">Modules:</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#usrvapp" class="nav-link">usrv.app</a>
+            <li class="nav-item" data-level="2"><a href="#features" class="nav-link">Features:</a>
               <ul class="nav flex-column">
               </ul>
             </li>
-            <li class="nav-item" data-level="2"><a href="#fast-and-simple" class="nav-link">Fast and simple</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#extracting-values-from-url-query" class="nav-link">Extracting values from url query</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#extracting-values-from-url-path" class="nav-link">Extracting values from url path</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#catching-unexpected-values" class="nav-link">Catching unexpected values</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#command-line" class="nav-link">Command line</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#changes" class="nav-link">Changes</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#support-this-project" class="nav-link">Support this project</a>
+            <li class="nav-item" data-level="2"><a href="#usage" class="nav-link">Usage:</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -135,180 +107,37 @@
 </div></div>
                     <div class="col-md-9" role="main">
 
-<h1 id="usrv-the-lightest-python-web-framework"><code>usrv</code>: the lightest python web framework</h1>
-<p><a href="https://raw.githubusercontent.com/Moustikitos/micro-server/master/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" /></a></p>
-<p>Package (<code>usrv</code>) is a pure python micro server implementation. It allows python function bindings for all HTTP methods. HTTP body can be encrypted on demand using secp256k1 keypairs.</p>
-<h2 id="install">Install</h2>
-<h3 id="developpment-version">Developpment version</h3>
-<pre><code class="language-bash">$ python -m pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
-</code></pre>
-<h3 id="last-version-041">last version (0.4.1)</h3>
-<pre><code class="language-bash">$ python -m pip install usrv
-</code></pre>
-<h2 id="usrvroute"><code>usrv.route</code></h2>
-<p>Bind python code to any HTTP requests easily using decorator syntax.
-<code>route</code> module can be used in standalone mode outside of <code>usrv</code> package.</p>
-<h2 id="usrvapp"><code>usrv.app</code></h2>
-<p>Run a low footprint python server or <a href="https://www.python.org/dev/peps/pep-3333">PEP#3333 WSGI server</a>.</p>
-<pre><code class="language-python">import waitress  # wsgi server for windows
-from usrv import app, route
-
-@route.bind(&quot;/index&quot;)
-def index(**kw):
-    return 200, &quot;Index page&quot;, kw
-
-waitress.serve(app.uApp(), threads=2)
-</code></pre>
-<h2 id="fast-and-simple">Fast and simple</h2>
-<p>Let&rsquo;s create a server with <code>/test</code> endpoint in a python module named <code>test.py</code>:</p>
-<pre><code class="language-python">from usrv import route, app
-
-@route.bind(&quot;/test&quot;)
-def do_test(a, b):
-    # write some code and return something
-    return 200, a, b
-
-def launchApp():
-    route.run(host=&quot;127.0.0.1&quot;, port=5000, loglevel=20)
-</code></pre>
-<p><strong>Bound functions have to return a tuple with a valid HTTP status code as first item</strong>.
-Server can be run from python interpreter:</p>
-<pre><code class="language-python">&gt;&gt;&gt; import test
-&gt;&gt;&gt; test.launchApp()
-INFO:usrv.srv:listening on 127.0.0.1:5000
-CTRL+C to stop...
-</code></pre>
-<p>Now going to <code>http://127.0.0.1:5000/test</code> with any browser gives:</p>
-<pre><code class="language-json">[null, null]
-</code></pre>
-<h2 id="extracting-values-from-url-query">Extracting values from url query</h2>
-<p><code>[null, null]</code> above are the returned values <code>a</code> and <code>b</code> from <code>do_test</code> function. Values can be extracted from query string. Let&rsquo;s type <code>http://127.0.0.1:5000/test?b=12&amp;a=Paris</code> in the address bar:</p>
-<pre><code class="language-json">[&quot;Paris&quot;, &quot;12&quot;]
-</code></pre>
-<p>Returned value from query are <code>str</code> only. Unexpected values are ignored but there is a <a href="#catching-unexpected-values">convenient way to catch them</a>.</p>
-<h2 id="extracting-values-from-url-path">Extracting values from url path</h2>
-<p>Values can also be extracted from url path with or without a typing precision.</p>
-<pre><code class="language-python">@route.bind(&quot;/&lt;int:b&gt;/&lt;a&gt;&quot;)
-def do_test(a, b):
-    # write some code and return something
-    return 200, a, b
-</code></pre>
-<p>This binding creates multiple endpoint possibilities. Let&rsquo;s try <code>http://127.0.0.1:5000/5/test</code>:</p>
-<pre><code class="language-json">[&quot;test&quot;, 5]
-</code></pre>
-<p>Values from url can be overrided by thoses from query&hellip; <code>http://127.0.0.1:5000/5/test?a=2&amp;b=6</code>:</p>
-<pre><code class="language-json">[&quot;2&quot;, &quot;6&quot;]
-</code></pre>
-<blockquote>
-<p>It can only be overrided with <code>str</code> type values.</p>
-</blockquote>
-<h2 id="catching-unexpected-values">Catching unexpected values</h2>
-<p>Using varargs or/and keywordargs is a convenient way to catch unexpected values from url query and HTTP context. HTTP Context is defined an headers and data (HTTP requests with body).</p>
-<p>When HTTP context is catched by <code>*args</code>, unexpected values from query string are appended next.</p>
-<p>Url used for this chapter <code>http://127.0.0.1:5000/test?b=12&amp;a=Paris&amp;unexpected=there</code>.</p>
-<h3 id="variable-args-args">Variable args (<code>*args</code>)</h3>
-<pre><code class="language-python">@route.bind(&quot;/test&quot;)
-def do_test(a, b, *args):
-    # write some code and return something
-    # args is a tuple
-    return 200, a, b, args
-</code></pre>
-<blockquote>
-<p>With <code>*args</code> method, HTTP headers and data will be postionned at the end of <code>json</code> response</p>
-</blockquote>
-<pre><code class="language-json">[
-  &quot;Paris&quot;,
-  &quot;12&quot;,
-  &quot;there&quot;,
-  &quot;GET&quot;,
-  {
-    &quot;host&quot;: &quot;127.0.0.1:5000&quot;,
-    &quot;connection&quot;: &quot;keep-alive&quot;,
-    &quot;sec-ch-ua&quot;: &quot;\&quot;Brave\&quot;;v=\&quot;131\&quot;, \&quot;Chromium\&quot;;v=\&quot;131\&quot;, \&quot;Not_A Brand\&quot;;v=\&quot;24\&quot;&quot;,
-    &quot;sec-ch-ua-mobile&quot;: &quot;?0&quot;,
-    &quot;sec-ch-ua-platform&quot;: &quot;\&quot;Windows\&quot;&quot;,
-    &quot;upgrade-insecure-requests&quot;: &quot;1&quot;,
-    &quot;user-agent&quot;: &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36&quot;,
-    &quot;accept&quot;: &quot;text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8&quot;,
-    &quot;sec-gpc&quot;: &quot;1&quot;,
-    &quot;accept-language&quot;: &quot;fr-FR,fr&quot;,
-    &quot;sec-fetch-site&quot;: &quot;none&quot;,
-    &quot;sec-fetch-mode&quot;: &quot;navigate&quot;,
-    &quot;sec-fetch-user&quot;: &quot;?1&quot;,
-    &quot;sec-fetch-dest&quot;: &quot;document&quot;,
-    &quot;accept-encoding&quot;: &quot;gzip, deflate, br, zstd&quot;
-  },
-  null
-]
-</code></pre>
-<h3 id="keyword-args-kwargs">Keyword args (<code>**kwargs</code>)</h3>
-<pre><code class="language-python">@route.bind(&quot;/test&quot;)
-def do_test(a, b, **kwargs):
-    # write some code and return something
-    # kwargs is a dict
-    return 200, a, b, kwargs
-</code></pre>
-<blockquote>
-<p>using <code>**kwargs</code> is the recommended way to retrieve unexpected values by names. Unexpected mapping is positionned at the end of <code>json</code> response.</p>
-</blockquote>
-<pre><code class="language-json">[
-  &quot;Paris&quot;,
-  &quot;12&quot;,
-  {
-    &quot;unexpected&quot;: &quot;there&quot;,
-    &quot;method&quot;: &quot;GET&quot;,
-    &quot;headers&quot;: {
-      &quot;host&quot;: &quot;127.0.0.1:5000&quot;,
-      &quot;connection&quot;: &quot;keep-alive&quot;,
-      &quot;sec-ch-ua&quot;: &quot;\&quot;Brave\&quot;;v=\&quot;131\&quot;, \&quot;Chromium\&quot;;v=\&quot;131\&quot;, \&quot;Not_A Brand\&quot;;v=\&quot;24\&quot;&quot;,
-      &quot;sec-ch-ua-mobile&quot;: &quot;?0&quot;,
-      &quot;sec-ch-ua-platform&quot;: &quot;\&quot;Windows\&quot;&quot;,
-      &quot;upgrade-insecure-requests&quot;: &quot;1&quot;,
-      &quot;user-agent&quot;: &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36&quot;,
-      &quot;accept&quot;: &quot;text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8&quot;,
-      &quot;sec-gpc&quot;: &quot;1&quot;,
-      &quot;accept-language&quot;: &quot;fr-FR,fr&quot;,
-      &quot;sec-fetch-site&quot;: &quot;none&quot;,
-      &quot;sec-fetch-mode&quot;: &quot;navigate&quot;,
-      &quot;sec-fetch-user&quot;: &quot;?1&quot;,
-      &quot;sec-fetch-dest&quot;: &quot;document&quot;,
-      &quot;accept-encoding&quot;: &quot;gzip, deflate, br, zstd&quot;
-    },
-    &quot;data&quot;: null,
-  }
-]
-</code></pre>
-<h2 id="command-line">Command line</h2>
-<p>WSGI server can be launched from command line.</p>
-<pre><code class="language-bash">$ python wsgi_srv.py -h
-Usage: wsgi_srv.py [options] BINDINGS...
-
-Options:
-  --version             show program's version number and exit
-  -h, --help            show this help message and exit
-  -t THREADS, --threads=THREADS
-                        set thread number           [default: 2]
-  -l LOGLEVEL, --log-level=LOGLEVEL
-                        set log level from 1 to 100 [default: 20]
-  -i HOST, --ip=HOST    ip to run from              [default: 127.0.0.1]
-  -p PORT, --port=PORT  port to use                 [default: 5000]
-</code></pre>
-<p><code>BINDINGS</code> is a space-separated-list of python module names (ie no <code>*.py</code> extention) containing boud python functions. Modules containing bound functions have to be in one of <code>sys.path</code> folder. Specific folder can be added using <code>wsgi_srv.path</code> file.</p>
-<h2 id="changes">Changes</h2>
-<h3 id="041">0.4.1</h3>
-<ul class="task-list">
-<li class="task-list-item"><input type="checkbox" disabled checked/> major changes and improvement, no backward compatibility with 0.3.0</li>
+<p><a id="usrv"></a></p>
+<h1 id="usrv">usrv</h1>
+<p><strong>Package Name: usrv</strong></p>
+<p>This package implements a lightweight Web Server Gateway Interface (WSGI)
+for deploying Python web applications. It follows the WSGI specification
+outlined in PEP 3333, providing a flexible interface for handling HTTP
+requests and responses.</p>
+<h2 id="modules">Modules:</h2>
+<ul>
+<li>wsgi: Implements the core WSGI functionality, including request
+  handling and URL reconstruction.</li>
+<li>route: Provides the web server capabilities, handling of incoming requests
+  and endpoint management.</li>
+<li>req: Provides a light request interface and with a pythonic way to access
+  remote resources.</li>
+<li>app: Provides the root app to be run behind WSGI for production mode.</li>
+<li>secp256k1: Provides all functions for ECIES encryption and ECDSA signature.</li>
 </ul>
-<h3 id="042-dev">0.4.2 (dev)</h3>
-<ul class="task-list">
-<li class="task-list-item"><input type="checkbox" disabled checked/> added body encryption/decryption based on <code>secp256k1</code> and <code>AES</code></li>
-<li class="task-list-item"><input type="checkbox" disabled checked/> added multipart/form-data body to req module</li>
-<li class="task-list-item"><input type="checkbox" disabled checked/> added endpoint builder</li>
+<h2 id="features">Features:</h2>
+<ul>
+<li>Route binding: Easily bind URL patterns to Python functions.</li>
+<li>Flexible response handling: Customize responses based on the request
+  method and URL.</li>
+<li>Error management: Handle common HTTP errors with appropriate status codes.</li>
+<li>Encryption: server and client side HTTP body encryption on demand.</li>
 </ul>
-<h2 id="support-this-project">Support this project</h2>
-<p><a href="https://liberapay.com/Toons/donate"><img alt="Liberapay receiving" src="https://img.shields.io/liberapay/goal/Toons?logo=liberapay" /></a>
-<a href="https://paypal.me/toons"><img alt="Paypal me" src="https://img.shields.io/badge/PayPal-toons-00457C?logo=paypal&amp;logoColor=white" /></a></p>
-<!-- [![Bitcoin](https://img.shields.io/badge/Donate-bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x-ff9900?logo=bitcoin)](https://raw.githubusercontent.com/Moustikitos/python-mainsail/master/docs/img/bc1q6aqr0hfq6shwlaux8a7ydvncw53lk2zynp277x.png) --></div>
+<h2 id="usage">Usage:</h2>
+<p>To use this package, import the relevant modules and define your endpoints
+using the provided routing functionality. Start the server with the desired
+configuration for host, port, and threading options.</p>
+<p>For more details, see the documentation and examples in the respective modules.</p></div>
             </div>
         </div>
 
@@ -392,5 +221,5 @@ Options:
 
 <!--
 MkDocs version : 1.5.3
-Build Date UTC : 2024-12-29 21:19:11.791864+00:00
+Build Date UTC : 2024-12-30 13:39:34.019291+00:00
 -->
