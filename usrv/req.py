@@ -9,12 +9,18 @@ management.
 **Let's run a micro server:**
 
 ```python
+# test.py
 from usrv import route
 
 # allow req.Endpoint.connect
 @route.bind("/", methods=["HEAD"])
 def base():
     return 200,
+
+# public key endoint for encryption
+@route.bind("/puk", methods=["GET"])
+def puk():
+    return 200, route.PUBLIC_KEY
 
 @route.bind("/index")
 def index(*args):
@@ -24,30 +30,106 @@ def index(*args):
 def endpoit(a, b, **kwargs):
     method = kwargs["method"]
     if method == "POST":
-        return 202,
+        return 202, kwargs["data"]
     elif method == "GET":
-        return 200, a, b, kwargs
+        return 200, a, b
     else:
         return 404,
 
 route.run(host='127.0.0.1', port=5000)
 ```
 
-**execute simple requests:**
+```bash
+$ python path/to/test.py
+INFO:usrv:listening on http://127.0.0.1:5000
+CTRL+C to stop...
+```
+
+**Connect to a peer**
+
+Remote path `/` allows HEAD request:
 
 ```python
 >>> from usrv import req
 >>> req.Endpoint.connect("http://127.0.0.1:5000")
 200
->>> req.GET.index()
-[{'accept-encoding': 'identity', 'host': '127.0.0.1:5000', 'user-agent': 'Pyth\
-on/usrv', 'content-type': 'application/json', 'connection': 'close'}, None]
->>> req.GET.api.endpoint()
-[None, None, {'headers': {'accept-encoding': 'identity', 'host': '127.0.0.1:50\
-00', 'user-agent': 'Python/usrv', 'content-type': 'application/json', 'connect\
-ion': 'close'}, 'data': None}]
->>> req.POST.api.endpoint()
-[]
+```
+
+Else, maunally set peer to `req.Endpoint` or use `_peer` keyword on each
+request :
+
+```python
+>>> from usrv import req
+>>> req.ENDPOINT.peer = "http://127.0.0.1:5000"
+>>> # or
+>>> req.GET.api.endpoint(_peer="http://127.0.0.1:5000")
+>>> req.POST.api.endpoint(_peer="http://127.0.0.1:5000")
+>>> # ...
+```
+
+**Endpoints**
+
+```python
+>>> # GET http://127.0.0.1:5000/puk
+>>> req.GET.puk()
+["pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0a\
+qBuFYcSmTQ=="]
+>>> # GET http://127.0.0.1:5000/api/endpoints?a=12&b=test
+>>> req.GET.api.endpoint(a=12, b="test")
+["12", "test"]
+>>> # POST data to http://127.0.0.1:5000/api/endpoints
+>>> req.POST.api.endpoint(value1=1, value2=2)
+['{"value1": 1, "value2": 2}']
+```
+
+**Encrypt HTTP body**
+
+```python
+>>> # encrypt only server body response
+>>> req.POST.api.endpoint(
+...   value1=1, value2=2, _headers={"Sender-Public-Key:req.PUBLIC_KEY}
+... )
+['{"value1": 1, "value2": 2}']
+>>> # encrypt request and response bodies
+>>> puk = req.GET.puk()[0]
+>>> puk
+pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqB\
+uFYcSmTQ==
+>>> req.POST.api.endpoint(value1=1, value2=2, _puk=puk)
+['{"value1": 1, "value2": 2}']
+```
+
+```python
+>>> from usrv import secp256k1
+>>> # generate a random keypair
+>>> prk, puk = secp256k1.generate_keypair()
+>>> # target public key is not server public key
+>>> puk == req.GET.puk()[0]
+False
+>>> print(req.POST.api.endpoints(value1=1, value2=2, _puk=puk))
+<!DOCTYPE HTML>\n<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Error response</title>
+    </head>
+    <body>
+    <h1>Error response</h1>
+        <p>Error code: 500</p>
+        <p>Message: Encryption error.</p>
+        <p>Error code explanation: 5e234e6f68f30a056c2bd53e97b785e49895b1ae85d\
+3cf323a95ot encrypted for public key pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhp\
+a38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==.</p>
+    </body>
+</html>
+>>> req.POST.api.endpoint(
+...   value1=1, value2=2, _headers={"Sender-Public-Key":puk}
+... )
+ERROR:usrv:Encryption error:
+cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39 not encry\
+pted for public key pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYP\
+GtOOyld7j6y0LP6i0aqBuFYcSmTQ==
+'cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39'
+>>>
 ```
 """
 
@@ -193,7 +275,11 @@ def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
     ):
         decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
         if decrypted is False:
-            raise secp256k1.EncryptionError(f"{http_input} - {puk}")
+            LOG.error(
+                "Encryption error:\n"
+                f"{http_input} not encrypted for public key {PUBLIC_KEY}"
+            )
+            return http_input
         else:
             http_input = decrypted
 
@@ -320,6 +406,8 @@ class Endpoint:
             typing.Union[int, bool]: HTTP status code or False on failure.
         """
         try:
+            parsed_url = urlparse(peer)
+            peer = f"{parsed_url.scheme}://{parsed_url.netloc}"
             res = OPENER.open(
                 build_request("HEAD", _peer=peer), timeout=Endpoint.timeout
             )
@@ -351,7 +439,8 @@ def build_endpoint(
             OPENER.open(
                 build_request(
                     http_req, url, _encoder=encoder or urlencode, **parameters
-                ), timeout=Endpoint.timeout
+                ),
+                timeout=timeout
             )
         )
     )
