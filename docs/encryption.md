@@ -72,7 +72,7 @@ Decompresses a compressed `secp256k1` point.
 def b64encode(point: tuple) -> str
 ```
 
-Encodes an elliptic curve point or ECDSA signaturesas a base64 string.
+Encodes an elliptic curve point or ECDSA signatures as a base64 string.
 
 **Arguments**:
 

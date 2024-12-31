@@ -72,13 +72,13 @@ request :
 ```python
 >>> # GET http://127.0.0.1:5000/puk
 >>> req.GET.puk()
-["pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ=="]
+pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==
 >>> # GET http://127.0.0.1:5000/api/endpoints?a=12&b=test
 >>> req.GET.api.endpoint(a=12, b="test")
 ["12", "test"]
 >>> # POST data to http://127.0.0.1:5000/api/endpoints
 >>> req.POST.api.endpoint(value1=1, value2=2)
-['{"value1": 1, "value2": 2}']
+'{"value1": 1, "value2": 2}'
 ```
 
 **Encrypt HTTP body**
@@ -88,13 +88,13 @@ request :
 >>> req.POST.api.endpoint(
 ...   value1=1, value2=2, _headers={"Sender-Public-Key:req.PUBLIC_KEY}
 ... )
-['{"value1": 1, "value2": 2}']
+'{"value1": 1, "value2": 2}'
 >>> # encrypt request and response bodies
->>> puk = req.GET.puk()[0]
+>>> puk = req.GET.puk()
 >>> puk
 pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==
 >>> req.POST.api.endpoint(value1=1, value2=2, _puk=puk)
-['{"value1": 1, "value2": 2}']
+'{"value1": 1, "value2": 2}'
 ```
 
 ```python
@@ -102,7 +102,7 @@ pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuF
 >>> # generate a random keypair
 >>> prk, puk = secp256k1.generate_keypair()
 >>> # target public key is not server public key
->>> puk == req.GET.puk()[0]
+>>> puk == req.GET.puk()
 False
 >>> print(req.POST.api.endpoints(value1=1, value2=2, _puk=puk))
 <!DOCTYPE HTML>
@@ -332,7 +332,7 @@ Creates a root endpoint.
 **Arguments**:
 
 - `http_req` _str_ - Name of HTTP method (i.e. HEAD, GET, POST etc...).
-- `encoder` _Callable_ - Data encoder function to use.
+- `encoder` _Callable_ - Data encoder function to use. (defaults to json)
 - `timeout` _int_ - Request timeout in seconds.
   
 

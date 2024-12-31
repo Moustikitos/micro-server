@@ -155,7 +155,7 @@ class FormData(list):
 
         body += b'--' + boundary + b'--'
         return body, \
-            f"multipart/form-data; boundary={boundary.decode("latin-1")}"
+            f"multipart/form-data; boundary={boundary.decode('latin-1')}"
 
     def dump(self) -> None:
         boundary = binascii.hexlify(os.urandom(16)).decode("utf-8")

@@ -92,7 +92,7 @@ Dynamically handles HTTP methods like 'do_GET', 'do_POST', etc.
 
 ```python
 @staticmethod
-def format_response(resp: typing.Any) -> typing.Tuple[str, str]
+def format_response(resp: tuple) -> typing.Tuple[str, str]
 ```
 
 Formats a response as JSON.
