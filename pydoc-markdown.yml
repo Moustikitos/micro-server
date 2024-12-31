@@ -33,7 +33,7 @@ renderer:
     - title: Home
       name: index
       contents:
-      - usrv
+      - usrv.FormData.*
     - title: Bindings
       contents:
       - usrv.route.*
