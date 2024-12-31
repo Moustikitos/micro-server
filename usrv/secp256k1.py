@@ -10,7 +10,7 @@ import unicodedata
 
 from binascii import hexlify, unhexlify
 
-# Elliptic Curve SECP256k1 Parameters
+# Elliptic Curve SECP256k1 Parameters ---------------------------------
 P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 A = 0
 B = 7
@@ -19,6 +19,7 @@ G = (
     0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
     0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8,
 )
+# ---------------------------------------------------------------------
 
 
 class EncryptionError(Exception):
@@ -78,7 +79,7 @@ def decode(puk: str) -> tuple:
 
 def b64encode(point: tuple) -> str:
     """
-    Encodes an elliptic curve point or ECDSA signaturesas a base64 string.
+    Encodes an elliptic curve point or ECDSA signatures as a base64 string.
 
     Args:
         point (tuple): The elliptic curve point as a tuple (x, y), where x and
