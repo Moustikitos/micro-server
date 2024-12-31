@@ -89,11 +89,25 @@ def dumpJson(data: typing.Any, name: str, folder: str = None) -> None:
 
 class FormData(list):
     """
-    ~ [RFC#7578](https://datatracker.ietf.org/doc/html/rfc7578)
     Implementation of multipart/form-data encoder.
-    """
 
-    def append_json(self, name: str, value: dict = {}, **kwval) -> typing.Any:
+    This class provides methods to construct, encode, and decode
+    multipart/form-data content, as described in [RFC 7578](https://datatracke\
+r.ietf.org/doc/html/rfc7578).
+    """
+    def append_json(self, name: str, value: dict = {}, **kwval) -> None:
+        """
+        Add a JSON object to the multipart body.
+
+        Args:
+            name (str): The name of the form field.
+            value (dict, optional): A dictionary representing the JSON object.
+                Defaults to None.
+            kwval: Additional key-value pairs to include in the JSON object.
+
+        Returns:
+            typing.Any: The updated FormData instance.
+        """
         list.append(self, {
             "name": name,
             "data": json.dumps(
@@ -101,11 +115,19 @@ class FormData(list):
             ).encode("latin-1"),
             "headers": {"Content-Type": "application/json"}
         })
-        return self
 
     def append_value(
         self, name: str, value: typing.Union[str, bytes], **headers
-    ) -> typing.Any:
+    ) -> None:
+        """
+        Add a text or binary value to the multipart body.
+
+        Args:
+            name (str): The name of the form field.
+            value (Union[str, bytes]): The value to add. Can be a string or
+                bytes.
+            headers: Additional headers to include for this field.
+        """
         list.append(self, {
             "name": name,
             "data": value if isinstance(value, bytes) else (
@@ -113,9 +135,18 @@ class FormData(list):
             ).encode("latin-1"),
             "headers": dict({"Content-Type": "text/plain"}, **headers)
         })
-        return self
 
     def append_file(self, name: str, path: str) -> typing.Any:
+        """
+        Add a file to the multipart body.
+
+        Args:
+            name (str): The name of the form field.
+            path (str): The path to the file to be added.
+
+        Raises:
+            IOError: If the file does not exist.
+        """
         if os.path.isfile(path):
             list.append(self, {
                 "name": name,
@@ -133,6 +164,12 @@ class FormData(list):
         return self
 
     def dumps(self) -> str:
+        """
+        Encode the FormData instance as a multipart/form-data body.
+
+        Returns:
+            str: The encoded body and the corresponding Content-Type header.
+        """
         body = b""
         boundary = binascii.hexlify(os.urandom(16))
 
@@ -157,9 +194,18 @@ class FormData(list):
         return body, \
             f"multipart/form-data; boundary={boundary.decode('latin-1')}"
 
-    def dump(self) -> None:
+    def dump(self, folder: str = None) -> None:
+        """
+        Save the FormData instance to files in a directory.
+
+        Each field in the FormData is written to a separate file.
+        Additional metadata is saved as JSON.
+
+        Returns:
+            None
+        """
         boundary = binascii.hexlify(os.urandom(16)).decode("utf-8")
-        root_folder = os.path.join(DATA, boundary)
+        root_folder = folder or os.path.join(DATA, boundary)
         os.makedirs(root_folder, exist_ok=True)
         for elem in self:
             content_type = elem["headers"].get(
@@ -181,6 +227,16 @@ class FormData(list):
 
     @staticmethod
     def encode(data: dict) -> str:
+        """
+        Encode a dictionary as a multipart/form-data string.
+
+        Args:
+            data (dict): The data to encode. Can include filepath, strings, or
+                FormData instances.
+
+        Returns:
+            str: The encoded multipart/form-data string.
+        """
         result = FormData()
         for name, value in data.items():
             if isinstance(value, FormData):
@@ -193,6 +249,15 @@ class FormData(list):
 
     @staticmethod
     def decode(data: str) -> typing.Any:
+        """
+        Decode a multipart/form-data string into a FormData instance.
+
+        Args:
+            data (str): The multipart/form-data string to decode.
+
+        Returns:
+            FormData: The decoded FormData instance.
+        """
         result = FormData()
         boundary = re.match(".*(--[0-9a-f]+).*", data).groups()[0]
 
