@@ -92,7 +92,7 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
         return BaseHTTPRequestHandler.__getattribute__(self, attr)
 
     @staticmethod
-    def format_response(resp: typing.Any) -> typing.Tuple[str, str]:
+    def format_response(resp: tuple) -> typing.Tuple[str, str]:
         """
         Formats a response as JSON.
 
@@ -102,6 +102,10 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
         Returns:
             Tuple[str, str]: The JSON response and its content type.
         """
+        if len(resp) == 0:
+            resp = None
+        elif len(resp) == 1:
+            resp = resp[0]
         return json.dumps(resp), "application/json"
 
     def do_(self, method: str = "GET") -> int:
