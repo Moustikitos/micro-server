@@ -224,7 +224,7 @@ Options:
 
 - [x] improved `route.uHTTPRequstHandler` response
 - [x] added body encryption/decryption based on `secp256k1` and `AES`
-- [x] added multipart/form-data body to req module
+- [x] added multipart/form-data body management to req module
 - [x] added endpoint builder
 
 ## Support this project
