@@ -16,7 +16,7 @@ kw = {
     "maintainer": "THOORENS Bruno",
     "maintainer_email": "moustikitos@gmail.com",
     "url": "https://moustikitos.github.io/micro-server",
-    "project_urls": {  # Optional
+    "project_urls": {
         "Bug Reports": "https://github.com/Moustikitos/micro-server/issues",
         "Funding":
             "https://github.com/Moustikitos/micro-server/?tab=readme-ov-file#s"
@@ -33,7 +33,7 @@ kw = {
     "install_requires": ["waitress", "pyaes"],
     "license": "Cpyright 2020 - 2021 THOORENS Bruno",
     "classifiers": [
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
@@ -42,6 +42,8 @@ kw = {
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
+        "Topic :: Security :: Cryptography",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Server"
     ],
     "entry_points": {
         "console_scripts": [
