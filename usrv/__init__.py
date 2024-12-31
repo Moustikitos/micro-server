@@ -221,6 +221,7 @@ class FormData(list):
                 elem.strip().replace(" ", "").split(":")
                 for elem in re.findall(r'([\w-]*[\s]*:[\s]*[\S]*)', info)
             )
+            headers.pop("Content-Disposition", False)
             # append item
             result.append(
                 dict(

@@ -230,9 +230,8 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
         )
         # get boundary value from data in cae of multipart/form-data
         if "multipart" in headers["Content-Type"]:
-            boundary = re.match(b".*--([0-9a-f]+).*", data).groups()[0]
-            headers["Content-Type"] += \
-                "; boundary=" + boundary.decode("latin-1")
+            boundary = re.match(".*--([0-9a-f]+).*", data).groups()[0]
+            headers["Content-Type"] += f"; boundary={boundary}"
         if puk is not None:
             R, data = secp256k1.encrypt(puk, data)
             headers["Ephemeral-Public-Key"] = R
@@ -431,7 +430,7 @@ def build_endpoint(
 
     Args:
         http_req (str): Name of HTTP method (i.e. HEAD, GET, POST etc...).
-        encoder (Callable): Data encoder function to use.
+        encoder (Callable): Data encoder function to use. (defaults to json)
         timeout (int): Request timeout in seconds.
 
     Returns:
