@@ -35,7 +35,7 @@ from usrv import app, route, LOG
 # Configure command-line argument parsing.
 parser = OptionParser(
     usage="usage: %prog [options] BINDINGS...",
-    version="%prog 1.0"
+    version="%prog 0.4.2"
 )
 parser.add_option(
     "-t", "--threads", action="store", dest="threads", default=2,
