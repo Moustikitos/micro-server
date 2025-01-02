@@ -121,6 +121,7 @@ False
 a38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==.</p>
     </body>
 </html>
+>>> # target public key is not the client public key
 >>> req.POST.api.endpoint(
 ...   value1=1, value2=2, _headers={"Sender-Public-Key":puk}
 ... )
@@ -454,7 +455,7 @@ class Endpoint:
     peer = None
 
     def __init__(
-        self, master: typing.Any = None, name: str = "", 
+        self, master: typing.Any = None, name: str = "",
         method: Callable = None
     ) -> None:
         """
@@ -650,6 +651,13 @@ def build_endpoint(
                 timeout=timeout
             )
         )
+    )
+
+
+def identify(secret: str = None) -> None:
+    global PRIVATE_KEY, PUBLIC_KEY
+    PRIVATE_KEY, PUBLIC_KEY = secp256k1.generate_keypair(
+        secret or secp256k1.load_secret()
     )
 
 

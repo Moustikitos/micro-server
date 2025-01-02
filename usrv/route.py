@@ -366,6 +366,13 @@ def callback(
     return function(*args, **kwargs)
 
 
+def identify(secret: str = None) -> None:
+    global PRIVATE_KEY, PUBLIC_KEY
+    PRIVATE_KEY, PUBLIC_KEY = secp256k1.generate_keypair(
+        secret or secp256k1.load_secret()
+    )
+
+
 def run(host: str = "127.0.0.1", port: int = 5000, loglevel: int = 20) -> None:
     """
     Starts the HTTP server.
