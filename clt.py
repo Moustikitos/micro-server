@@ -2,6 +2,7 @@
 # © THOORENS Bruno
 
 import sys
+import msvcrt
 
 from usrv import req
 
@@ -14,6 +15,8 @@ try:
     req.Endpoint.connect(sys.argv[1])
 except Exception:
     req.LOG.error(f"peer not available: {sys.argv[1:]}")
+    print("Press any key to continue...")
+    msvcrt.getch()
     sys.exit(1)
 else:
     print(f"clt tool 0.4.2\nConnected to {sys.argv[1]}\nCTRL+C to stop...")
