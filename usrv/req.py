@@ -133,15 +133,18 @@ GtOOyld7j6y0LP6i0aqBuFYcSmTQ==
 ```
 """
 
+import os
 import re
 import ssl
 import time
 import json
 import typing
 import hashlib
+import binascii
 import traceback
+import mimetypes
 
-from usrv import LOG, secp256k1, FormData
+from usrv import LOG, DATA, dumpJson, secp256k1
 from collections import OrderedDict
 from collections.abc import Callable
 from urllib.request import Request, OpenerDirector, HTTPHandler
@@ -168,127 +171,16 @@ CONTEXT.options |= ssl.OP_NO_SSLv3
 CONTEXT.options |= ssl.OP_NO_TLSv1
 CONTEXT.options |= ssl.OP_NO_TLSv1_1
 
-DECODERS = {
-    "application/x-www-form-urlencoded": parse_qsl,
-    "application/json": json.loads,
-    "multipart/form-data": FormData.decode,
-    "application/octet-stream": lambda o: o
-}
-
-ENCODERS = {
-    urlencode: "application/x-www-form-urlencoded",
-    json.dumps: "application/json",
-    FormData.encode: "multipart/form-data"
-}
-
 OPENER = OpenerDirector()
 OPENER.add_handler(HTTPHandler())
 OPENER.add_handler(HTTPSHandler(context=CONTEXT))
 OPENER.add_handler(FileHandler())
 
+LATIN_1 = "latin-1"
+
 
 class RequestBuilderException(Exception):
     pass
-
-
-def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
-    """
-    Builds an HTTP request object.
-
-    Args:
-        method (str): HTTP method (e.g., 'GET', 'POST'). Defaults to 'GET'.
-        path (str): URL path for the request. Defaults to '/'.
-        **kwargs: Additional keyword arguments for query parameters, headers,
-            and data.
-
-    Returns:
-        Request: Configured HTTP request object.
-        """
-    # Check if the request is already cached
-    key = RequestCache.generate_key(method, path, **kwargs)
-    cached_request = Endpoint.cache.get(key)
-    if cached_request is not None:
-        return cached_request
-
-    method = method.upper()
-    encoder = kwargs.pop("_encoder", urlencode)
-    peer = kwargs.pop("_peer", False) or Endpoint.peer
-    headers = dict({"User-Agent": "Python/usrv"}, **kwargs.pop("_headers", {}))
-    puk = kwargs.pop("_puk", None)
-
-    if peer is None:
-        raise RequestBuilderException("no peer to reach")
-
-    if method in ["GET", "DELETE", "HEAD", "OPTION", "TRACE"]:
-        query = urlencode(kwargs)
-        data = None
-    else:
-        query = None
-        data = encoder(kwargs)
-        headers["Content-Type"] = ENCODERS.get(
-            encoder, "application/octet-stream"
-        )
-        # get boundary value from data in cae of multipart/form-data
-        if "multipart" in headers["Content-Type"]:
-            boundary = re.match(".*--([0-9a-f]+).*", data).groups()[0]
-            headers["Content-Type"] += f"; boundary={boundary}"
-        if puk is not None:
-            R, data = secp256k1.encrypt(puk, data)
-            headers["Ephemeral-Public-Key"] = R
-            headers["Sender-Public-Key"] = PUBLIC_KEY
-            headers["Sender-Signature"] = secp256k1.sign(data+R, PRIVATE_KEY)
-        data = data if isinstance(data, bytes) else data.encode("latin-1")
-
-    req = Request(
-        urlunparse(urlparse(peer)._replace(path=path, query=query)),
-        data, headers
-    )
-    req.get_method = lambda: method
-    Endpoint.cache.set(key, req)
-    return req
-
-
-def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
-    """
-    Parses the HTTP response.
-
-    Args:
-        resp (HTTPResponse): HTTP response object.
-
-    Returns:
-        typing.Union[dict, str]: Decoded response content.
-    """
-    content_type = resp.headers.get(
-        "content-type", "application/octet-stream"
-    ).lower()
-    http_input = resp.read()
-    http_input = \
-        http_input.decode(resp.headers.get_content_charset("latin-1")) \
-        if isinstance(http_input, bytes) else http_input
-    # avoid json decoder error
-    if "json" in content_type:
-        http_input = http_input or 'null'
-
-    puk = resp.headers.get("ephemeral-public-key", None)
-    sender_puk = resp.headers.get("sender-public-key", None)
-    signature = resp.headers.get("sender-signature", None)
-    if all([puk, sender_puk, signature]) and secp256k1.verify(
-        http_input+puk, signature, sender_puk
-    ):
-        decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
-        if decrypted is False:
-            LOG.error(
-                "Encryption error:\n"
-                f"{http_input} not encrypted for public key {PUBLIC_KEY}"
-            )
-            return http_input
-        else:
-            http_input = decrypted
-
-    if "text/" not in content_type:
-        http_input = DECODERS[content_type.split(";")[0].strip()](http_input)
-
-    return http_input
 
 
 class RequestCache:
@@ -332,6 +224,218 @@ class RequestCache:
         self.cache[key] = (time.time(), request)
 
 
+class FormData(list):
+    """
+    Implementation of multipart/form-data encoder.
+
+    This class provides methods to construct, encode, and decode
+    multipart/form-data content, as described in [RFC 7578](https://datatracke\
+r.ietf.org/doc/html/rfc7578).
+    """
+    def append_json(self, name: str, value: dict = {}, **kwval) -> None:
+        """
+        Add a JSON object to the multipart body.
+
+        Args:
+            name (str): The name of the form field.
+            value (dict, optional): A dictionary representing the JSON object.
+                Defaults to None.
+            kwval: Additional key-value pairs to include in the JSON object.
+
+        Returns:
+            typing.Any: The updated FormData instance.
+        """
+        list.append(self, {
+            "name": name,
+            "data": json.dumps(
+                dict(value, **kwval), sort_keys=True, separators=(",", ":")
+            ).encode(LATIN_1),
+            "headers": {"Content-Type": "application/json"}
+        })
+
+    def append_value(
+        self, name: str, value: typing.Union[str, bytes], **headers
+    ) -> None:
+        """
+        Add a text or binary value to the multipart body.
+
+        Args:
+            name (str): The name of the form field.
+            value (Union[str, bytes]): The value to add. Can be a string or
+                bytes.
+            headers: Additional headers to include for this field.
+        """
+        list.append(self, {
+            "name": name,
+            "data": value if isinstance(value, bytes) else (
+                "%s" % value
+            ).encode(LATIN_1),
+            "headers": dict({"Content-Type": "text/plain"}, **headers)
+        })
+
+    def append_file(self, name: str, path: str) -> typing.Any:
+        """
+        Add a file to the multipart body.
+
+        Args:
+            name (str): The name of the form field.
+            path (str): The path to the file to be added.
+
+        Raises:
+            IOError: If the file does not exist.
+        """
+        if os.path.isfile(path):
+            list.append(self, {
+                "name": name,
+                "filename": os.path.basename(path),
+                "headers": {
+                    "Content-Type": (
+                        mimetypes.guess_type(path)[0] or
+                        "application/octet-stream"
+                    )
+                },
+                "data": open(path, "rb").read()
+            })
+        else:
+            raise IOError("file %s not found" % path)
+        return self
+
+    def dumps(self) -> str:
+        """
+        Encode the FormData instance as a multipart/form-data body.
+
+        Returns:
+            str: The encoded body and the corresponding Content-Type header.
+        """
+        body = b""
+        boundary = binascii.hexlify(os.urandom(16))
+
+        for value in [dict(v) for v in self]:
+            field = value.pop("name").encode(LATIN_1)
+            data = value.pop("data")
+            headers = value.pop("headers")
+
+            body += b'--' + boundary + b'\r\n'
+            body += b'Content-Disposition: form-data; name="%s"; ' % field
+            body += '; '.join(
+                ['%s="%s"' % (n, v) for n, v in value.items()]
+            ).encode(LATIN_1) + b'\r\n'
+            body += (
+                '\r\n'.join(
+                    ['%s: %s' % (n, v) for n, v in headers.items()]
+                ).encode(LATIN_1) + b"\r\n"
+            ) or b'\r\n'
+            body += b'\r\n' + data + b'\r\n'
+
+        body += b'--' + boundary + b'--'
+        return body, \
+            f"multipart/form-data; boundary={boundary.decode('latin-1')}"
+
+    def dump(self, folder: str = None) -> None:
+        """
+        Save the FormData instance to files in a directory.
+
+        Each field in the FormData is written to a separate file.
+        Additional metadata is saved as JSON.
+
+        Returns:
+            None
+        """
+        boundary = binascii.hexlify(os.urandom(16)).decode("utf-8")
+        root_folder = folder or os.path.join(DATA, boundary)
+        os.makedirs(root_folder, exist_ok=True)
+        for elem in self:
+            content_type = elem["headers"].get(
+                "Content-Type", "application/octet-stream"
+            )
+            filename = elem.get("name", "undefined")
+            ext = mimetypes.guess_extension(content_type) \
+                or f".{content_type.replace('/', '.')}"
+            with open(
+                os.path.join(root_folder, f"{filename}{ext}"), "wb"
+            ) as out:
+                out.write(elem.get("data", b""))
+            dumpJson(
+                dict(
+                    [k, v] for k, v in elem.items()
+                    if k not in ["data", "name"]
+                ), f"{filename}.values", root_folder
+            )
+
+    @staticmethod
+    def encode(data: dict) -> str:
+        """
+        Encode a dictionary as a multipart/form-data string.
+
+        Args:
+            data (dict): The data to encode. Can include filepath, strings, or
+                FormData instances.
+
+        Returns:
+            str: The encoded multipart/form-data string.
+        """
+        result = FormData()
+        for name, value in data.items():
+            if isinstance(value, FormData):
+                result.extend(value)
+            elif os.path.isfile(value):
+                result.append_file(name, value)
+            else:
+                result.append_value(name, value)
+        return result.dumps()[0].decode(LATIN_1)
+
+    @staticmethod
+    def decode(data: str) -> typing.Any:
+        """
+        Decode a multipart/form-data string into a FormData instance.
+
+        Args:
+            data (str): The multipart/form-data string to decode.
+
+        Returns:
+            FormData: The decoded FormData instance.
+        """
+        result = FormData()
+        boundary = re.match(".*(--[0-9a-f]+).*", data).groups()[0]
+
+        frames = []
+        # define frames by scanning lines
+        for line in data.split("\r\n")[:-1]:
+            if line == boundary:
+                frames.append("")
+            else:
+                frames[-1] += line + "\r\n"
+
+        for frame in frames:
+            # separate lines to find void one (separator between info and data)
+            splited = frame.split("\r\n")
+            separator_index = splited.index("")
+            # rebuild info and data
+            info = "\r\n".join(splited[:separator_index])
+            data = "\r\n".join(splited[separator_index+1:])
+            # get all values from info
+            values = dict(
+                elem.replace('"', '').split("=")
+                for elem in re.findall(r'([\w-]*[\s]*=[\s]*"[\S]*")', info)
+            )
+            # get headers from info
+            headers = dict(
+                elem.strip().replace(" ", "").split(":")
+                for elem in re.findall(r'([\w-]*[\s]*:[\s]*[\S]*)', info)
+            )
+            headers.pop("Content-Disposition", False)
+            # append item
+            result.append(
+                dict(
+                    name=values.pop("name", "undefined"),
+                    data=data.strip().encode(LATIN_1), headers=headers,
+                    **values
+                )
+            )
+
+        return result
+
+
 class Endpoint:
     """
     Represents an HTTP endpoint with dynamic attribute handling.
@@ -350,8 +454,8 @@ class Endpoint:
     peer = None
 
     def __init__(
-        self, master: typing.Any = None, name: str = "",
-        method: Callable = manage_response
+        self, master: typing.Any = None, name: str = "", 
+        method: Callable = None
     ) -> None:
         """
         Initializes an Endpoint instance.
@@ -421,6 +525,107 @@ class Endpoint:
         return False
 
 
+def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
+    """
+    Builds an HTTP request object.
+
+    Args:
+        method (str): HTTP method (e.g., 'GET', 'POST'). Defaults to 'GET'.
+        path (str): URL path for the request. Defaults to '/'.
+        **kwargs: Additional keyword arguments for query parameters, headers,
+            and data.
+
+    Returns:
+        Request: Configured HTTP request object.
+        """
+    # Check if the request is already cached
+    key = RequestCache.generate_key(method, path, **kwargs)
+    cached_request = Endpoint.cache.get(key)
+    if cached_request is not None:
+        # TODO: update nonce
+        return cached_request
+
+    method = method.upper()
+    encoder = kwargs.pop("_encoder", urlencode)
+    peer = kwargs.pop("_peer", False) or Endpoint.peer
+    headers = dict({"User-Agent": "Python/usrv"}, **kwargs.pop("_headers", {}))
+    puk = kwargs.pop("_puk", None)
+
+    if peer is None:
+        raise RequestBuilderException("no peer to reach")
+
+    if method in ["GET", "DELETE", "HEAD", "OPTION", "TRACE"]:
+        query = urlencode(kwargs)
+        data = None
+    else:
+        query = None
+        data = encoder(kwargs)
+        headers["Content-Type"] = ENCODERS.get(
+            encoder, "application/octet-stream"
+        )
+        # get boundary value from data in cae of multipart/form-data
+        if "multipart" in headers["Content-Type"]:
+            boundary = re.match(".*--([0-9a-f]+).*", data).groups()[0]
+            headers["Content-Type"] += f"; boundary={boundary}"
+        if puk is not None:
+            R, data = secp256k1.encrypt(puk, data)
+            headers["Ephemeral-Public-Key"] = R
+            headers["Sender-Public-Key"] = PUBLIC_KEY
+            headers["Sender-Signature"] = secp256k1.sign(data+R, PRIVATE_KEY)
+        data = data if isinstance(data, bytes) else data.encode(LATIN_1)
+
+    req = Request(
+        urlunparse(urlparse(peer)._replace(path=path, query=query)),
+        data, headers
+    )
+    req.get_method = lambda: method
+    Endpoint.cache.set(key, req)
+    return req
+
+
+def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
+    """
+    Parses the HTTP response.
+
+    Args:
+        resp (HTTPResponse): HTTP response object.
+
+    Returns:
+        typing.Union[dict, str]: Decoded response content.
+    """
+    content_type = resp.headers.get(
+        "content-type", "application/octet-stream"
+    ).lower()
+    http_input = resp.read()
+    http_input = \
+        http_input.decode(resp.headers.get_content_charset(LATIN_1)) \
+        if isinstance(http_input, bytes) else http_input
+    # avoid json decoder error
+    if "json" in content_type:
+        http_input = http_input or 'null'
+
+    puk = resp.headers.get("ephemeral-public-key", None)
+    sender_puk = resp.headers.get("sender-public-key", None)
+    signature = resp.headers.get("sender-signature", None)
+    if all([puk, sender_puk, signature]) and secp256k1.verify(
+        http_input+puk, signature, sender_puk
+    ):
+        decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
+        if decrypted is False:
+            LOG.error(
+                "Encryption error:\n"
+                f"{http_input} not encrypted for public key {PUBLIC_KEY}"
+            )
+            return http_input
+        else:
+            http_input = decrypted
+
+    if "text/" not in content_type:
+        http_input = DECODERS[content_type.split(";")[0].strip()](http_input)
+
+    return http_input
+
+
 def build_endpoint(
     http_req: str = "GET", encoder: Callable = json.dumps,
     timeout: int = Endpoint.timeout
@@ -459,3 +664,16 @@ PUT = build_endpoint("PUT")
 TRACE = build_endpoint("TRACE")
 DELETE = build_endpoint("DELETE")
 CONNECT = build_endpoint("CONNECT")
+
+DECODERS = {
+    "application/x-www-form-urlencoded": parse_qsl,
+    "application/json": json.loads,
+    "multipart/form-data": FormData.decode,
+    "application/octet-stream": lambda o: o
+}
+
+ENCODERS = {
+    urlencode: "application/x-www-form-urlencoded",
+    json.dumps: "application/json",
+    FormData.encode: "multipart/form-data"
+}
