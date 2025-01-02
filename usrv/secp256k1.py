@@ -2,13 +2,17 @@
 # © THOORENS Bruno
 
 import os
+import re
 import pyaes
 import typing
 import base64
 import hashlib
+import getpass
 import unicodedata
 
 from binascii import hexlify, unhexlify
+
+KEYS = os.path.abspath(os.path.join(os.path.dirname(__file__), ".keys"))
 
 # Elliptic Curve SECP256k1 Parameters ---------------------------------
 P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
@@ -333,3 +337,33 @@ def decrypt(private_key: int, R: str, ciphered: str) -> str:
     S = point_multiply(private_key, b64decode(R))
     secret = hashlib.sha256(S[0].to_bytes(32, "big")).hexdigest()
     return aes_decrypt(ciphered, secret)
+
+
+# TODO: load passphrase, dump passphrase
+def dump_secret(secret: str) -> None:
+    pincode = "?"
+    while not re.match(r"^\d*$", pincode):
+        pincode = getpass.getpass("type your pincode > ")
+    filename = os.path.join(
+        KEYS, f"{hashlib.sha256(pincode.encode("utf-8")).hexdigest()}.key"
+    )
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "wb") as output:
+        output.write(
+            aes_encrypt(secret, bip39_hash(pincode).hex()).encode("utf-8")
+        )
+
+
+def load_secret() -> str:
+    pincode = "?"
+    while not re.match(r"^\d*$", pincode):
+        pincode = getpass.getpass("type your pincode > ")
+    filename = os.path.join(
+        KEYS, f"{hashlib.sha256(pincode.encode("utf-8")).hexdigest()}.key"
+    )
+    if os.path.exists(filename):
+        with open(filename, "rb") as input_:
+            secret = aes_decrypt(
+                input_.read().decode("utf-8"), bip39_hash(pincode).hex()
+            )
+        return secret
