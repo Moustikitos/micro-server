@@ -47,7 +47,8 @@ kw = {
     ],
     "entry_points": {
         "console_scripts": [
-            "usrv_serve = wsgi_srv"
+            "usrv_server = wsgi_srv",
+            "usrv_client = clt"
         ]
     }
 }
