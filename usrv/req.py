@@ -379,10 +379,14 @@ r.ietf.org/doc/html/rfc7578).
         for name, value in data.items():
             if isinstance(value, FormData):
                 result.extend(value)
-            elif os.path.isfile(value):
-                result.append_file(name, value)
             else:
-                result.append_value(name, value)
+                try:
+                    result.append_file(name, value)
+                except Exception:
+                    if isinstance(value, dict):
+                        result.append_json(name, value)
+                    else:
+                        result.append_value(name, value)
         return result.dumps()[0].decode(LATIN_1)
 
     @staticmethod
@@ -489,7 +493,7 @@ class Endpoint:
                 attr = attr[1:]
             return Endpoint(self, attr, self.method)
 
-    def __call__(self, **kwargs) -> typing.Any:
+    def __call__(self, *args, **kwargs) -> typing.Any:
         """
         Executes the endpoint's method with provided arguments.
 
@@ -499,7 +503,11 @@ class Endpoint:
         Returns:
             typing.Any: value returned by `method` attribute.
         """
-        return self.method(self.path, **kwargs)
+        if len(args):
+            path = f"{self.path}/{'/'.join(args)}"
+        else:
+            path = self.path
+        return self.method(path, **kwargs)
 
     @staticmethod
     def connect(peer: str) -> typing.Union[int, bool]:
