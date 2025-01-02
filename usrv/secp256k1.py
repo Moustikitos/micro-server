@@ -339,7 +339,6 @@ def decrypt(private_key: int, R: str, ciphered: str) -> str:
     return aes_decrypt(ciphered, secret)
 
 
-# TODO: load passphrase, dump passphrase
 def dump_secret(secret: str) -> None:
     pincode = "?"
     while not re.match(r"^\d*$", pincode):
