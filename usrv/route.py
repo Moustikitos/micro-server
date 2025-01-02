@@ -375,7 +375,7 @@ def run(host: str = "127.0.0.1", port: int = 5000, loglevel: int = 20) -> None:
         port (int): The port to bind to. Defaults to 5000.
         loglevel (int): Logging level. Defaults to 20.
     """
-    LOG.setLevel(20)
+    LOG.setLevel(loglevel)
     httpd = HTTPServer((host, port), uHTTPRequestHandler)
     try:
         LOG.info("listening on http://%s:%s\nCTRL+C to stop...", host, port)
