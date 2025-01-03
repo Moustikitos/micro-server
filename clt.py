@@ -49,5 +49,5 @@ while True:
             print(">", endpoint(**kwargs))
     except KeyboardInterrupt:
         break
-    except Exception:
-        continue
+    except Exception as error:
+        req.LOG.error(f"{error}")
