@@ -229,6 +229,7 @@ Options:
 - [x] added secured secret dump and load
 - [x] added endpoint builder
 - [x] added [pinata](https://pinata.cloud) plugin
+- [x] added [binance](https://binance.com) plugin
 
 ## Support this project
 
