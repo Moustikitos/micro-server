@@ -19,6 +19,7 @@ def link(token: str) -> None:
 def pinata_kwargs(kwargs: dict) -> dict:
     kwargs["_peer"] = PEER
     kwargs["_headers"] = HEADERS
+    kwargs["_encoder"] = req.json.dumps
     return kwargs
 
 
@@ -49,7 +50,6 @@ PUT = req.Endpoint(
     )
 )
 
-
 DELETE = req.Endpoint(
     method=lambda url, **parameters: req.manage_response(
         req.OPENER.open(
@@ -60,9 +60,18 @@ DELETE = req.Endpoint(
 )
 
 
-def pinFile(pathfile: str, options: dict = {}, **metadata) -> typing.Any:
+def pinFile(
+    name: str, pathfile: str, options: dict = {}, **metadata
+) -> typing.Any:
+    metadata["name"] = name
     options["cidVersion"] = options.get("cidVersion", "1")
     return POST.pinning.pinFileToIPFS(
         _encoder=req.FormData.encode,
         file=pathfile, pinataOptions=options, pinataMetadata=metadata
+    )
+
+
+def updateMetadata(name: str, ipfs_hash: str, **metadata) -> typing.Any:
+    return PUT.pinning.hashMetadata(
+        name=name, ipfsPinHash=ipfs_hash, keyvalues=metadata
     )
