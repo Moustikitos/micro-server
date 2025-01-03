@@ -228,6 +228,7 @@ Options:
 - [x] added custom client/server identification
 - [x] added secured secret dump and load
 - [x] added endpoint builder
+- [x] added [pinata](https://pinata.cloud) plugin
 
 ## Support this project
 
