@@ -654,7 +654,8 @@ def build_endpoint(
         method=lambda url, **parameters: manage_response(
             OPENER.open(
                 build_request(
-                    http_req, url, _encoder=encoder or urlencode, **parameters
+                    http_req, url,
+                    **dict({"_encoder": encoder or urlencode}, **parameters)
                 ),
                 timeout=timeout
             )
