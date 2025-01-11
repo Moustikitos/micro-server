@@ -100,6 +100,10 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-level="2"><a href="#encode" class="nav-link">encode</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-level="2"><a href="#decode" class="nav-link">decode</a>
               <ul class="nav flex-column">
               </ul>
@@ -156,6 +160,14 @@
               <ul class="nav flex-column">
               </ul>
             </li>
+            <li class="nav-item" data-level="2"><a href="#dump_secret" class="nav-link">dump_secret</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#load_secret" class="nav-link">load_secret</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
               </ul>
             </li>
         </ul>
@@ -190,6 +202,19 @@ integrity.</p>
 <pre><code class="language-python">def y_from_x(x: int) -&gt; int
 </code></pre>
 <p>Computes y from x according to <code>secp256k1</code> equation.</p>
+<p><a id="usrv.secp256k1.encode"></a></p>
+<h2 id="encode">encode</h2>
+<pre><code class="language-python">def encode(point: tuple) -&gt; str
+</code></pre>
+<p>Compresses <code>secp256k1</code> point.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>tuple</code> - Point on <code>secp256k1</code> curve.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>pubkey</code> <em>str</em> - Compressed and encoded point.</li>
+</ul>
 <p><a id="usrv.secp256k1.decode"></a></p>
 <h2 id="decode">decode</h2>
 <pre><code class="language-python">def decode(puk: str) -&gt; tuple
@@ -207,7 +232,7 @@ integrity.</p>
 <h2 id="b64encode">b64encode</h2>
 <pre><code class="language-python">def b64encode(point: tuple) -&gt; str
 </code></pre>
-<p>Encodes an elliptic curve point or ECDSA signaturesas a base64 string.</p>
+<p>Encodes an elliptic curve point or ECDSA signatures as a base64 string.</p>
 <p><strong>Arguments</strong>:</p>
 <ul>
 <li><code>point</code> <em>tuple</em> - The elliptic curve point as a tuple (x, y), where x and
@@ -304,7 +329,7 @@ signature.</p>
 <h2 id="sign">sign</h2>
 <pre><code class="language-python">def sign(message: str, private_key: int) -&gt; str
 </code></pre>
-<p>Signs a message using a private key.</p>
+<p>Generates an ECDSA message signature using a private key.</p>
 <p><strong>Arguments</strong>:</p>
 <ul>
 <li><code>message</code> <em>str</em> - The message to sign.</li>
@@ -387,6 +412,29 @@ signature.</p>
 <p><strong>Returns</strong>:</p>
 <ul>
 <li><code>str</code> - Message as plaintext.</li>
+</ul>
+<p><a id="usrv.secp256k1.dump_secret"></a></p>
+<h2 id="dump_secret">dump_secret</h2>
+<pre><code class="language-python">def dump_secret(secret: str = None) -&gt; None
+</code></pre>
+<p>Securely stores a secret using a PIN.</p>
+<p>The secret is encrypted with AES using a key derived from a PIN.
+The encrypted file is saved in a specified directory.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>secret</code> <em>str</em> - The secret to be encrypted and stored.</li>
+</ul>
+<p><a id="usrv.secp256k1.load_secret"></a></p>
+<h2 id="load_secret">load_secret</h2>
+<pre><code class="language-python">def load_secret() -&gt; typing.Optional[str]
+</code></pre>
+<p>Loads and decrypts a secret using a PIN.</p>
+<p>The file containing the secret is identified by a SHA256 hash of the PIN.
+If the file exists, its contents are decrypted and returned.</p>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Optional[str]</code> - The decrypted secret, or None if the file does not
+  exist.</li>
 </ul></div>
             </div>
         </div>

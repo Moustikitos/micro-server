@@ -88,19 +88,23 @@
             
             <li class="nav-item" data-level="1"><a href="#req" class="nav-link">req</a>
               <ul class="nav flex-column">
+            <li class="nav-item" data-level="2"><a href="#requestcache-objects" class="nav-link">RequestCache Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#formdata-objects" class="nav-link">FormData Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
+            <li class="nav-item" data-level="2"><a href="#endpoint-objects" class="nav-link">Endpoint Objects</a>
+              <ul class="nav flex-column">
+              </ul>
+            </li>
             <li class="nav-item" data-level="2"><a href="#build_request" class="nav-link">build_request</a>
               <ul class="nav flex-column">
               </ul>
             </li>
             <li class="nav-item" data-level="2"><a href="#manage_response" class="nav-link">manage_response</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#requestcache-objects" class="nav-link">RequestCache Objects</a>
-              <ul class="nav flex-column">
-              </ul>
-            </li>
-            <li class="nav-item" data-level="2"><a href="#endpoint-objects" class="nav-link">Endpoint Objects</a>
               <ul class="nav flex-column">
               </ul>
             </li>
@@ -172,32 +176,32 @@ request :</p>
 <p><strong>Endpoints</strong></p>
 <pre><code class="language-python">&gt;&gt;&gt; # GET http://127.0.0.1:5000/puk
 &gt;&gt;&gt; req.GET.puk()
-[&quot;pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==&quot;]
+pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==
 &gt;&gt;&gt; # GET http://127.0.0.1:5000/api/endpoints?a=12&amp;b=test
 &gt;&gt;&gt; req.GET.api.endpoint(a=12, b=&quot;test&quot;)
 [&quot;12&quot;, &quot;test&quot;]
 &gt;&gt;&gt; # POST data to http://127.0.0.1:5000/api/endpoints
 &gt;&gt;&gt; req.POST.api.endpoint(value1=1, value2=2)
-['{&quot;value1&quot;: 1, &quot;value2&quot;: 2}']
+'{&quot;value1&quot;: 1, &quot;value2&quot;: 2}'
 </code></pre>
 <p><strong>Encrypt HTTP body</strong></p>
 <pre><code class="language-python">&gt;&gt;&gt; # encrypt only server body response
 &gt;&gt;&gt; req.POST.api.endpoint(
 ...   value1=1, value2=2, _headers={&quot;Sender-Public-Key:req.PUBLIC_KEY}
 ... )
-['{&quot;value1&quot;: 1, &quot;value2&quot;: 2}']
+'{&quot;value1&quot;: 1, &quot;value2&quot;: 2}'
 &gt;&gt;&gt; # encrypt request and response bodies
-&gt;&gt;&gt; puk = req.GET.puk()[0]
+&gt;&gt;&gt; puk = req.GET.puk()
 &gt;&gt;&gt; puk
 pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==
 &gt;&gt;&gt; req.POST.api.endpoint(value1=1, value2=2, _puk=puk)
-['{&quot;value1&quot;: 1, &quot;value2&quot;: 2}']
+'{&quot;value1&quot;: 1, &quot;value2&quot;: 2}'
 </code></pre>
 <pre><code class="language-python">&gt;&gt;&gt; from usrv import secp256k1
 &gt;&gt;&gt; # generate a random keypair
 &gt;&gt;&gt; prk, puk = secp256k1.generate_keypair()
 &gt;&gt;&gt; # target public key is not server public key
-&gt;&gt;&gt; puk == req.GET.puk()[0]
+&gt;&gt;&gt; puk == req.GET.puk()
 False
 &gt;&gt;&gt; print(req.POST.api.endpoints(value1=1, value2=2, _puk=puk))
 &lt;!DOCTYPE HTML&gt;
@@ -213,6 +217,7 @@ False
         &lt;p&gt;Error code explanation: 5e234e6f68f30a056c2bd53e97b785e49895b1ae85d3cf323a95ot encrypted for public key pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==.&lt;/p&gt;
     &lt;/body&gt;
 &lt;/html&gt;
+&gt;&gt;&gt; # target public key is not the client public key
 &gt;&gt;&gt; req.POST.api.endpoint(
 ...   value1=1, value2=2, _headers={&quot;Sender-Public-Key&quot;:puk}
 ... )
@@ -221,33 +226,6 @@ cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39 not encrypt
 'cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39'
 &gt;&gt;&gt;
 </code></pre>
-<p><a id="usrv.req.build_request"></a></p>
-<h2 id="build_request">build_request</h2>
-<pre><code class="language-python">def build_request(method: str = &quot;GET&quot;, path: str = &quot;/&quot;, **kwargs) -&gt; Request
-</code></pre>
-<p>Builds an HTTP request object.</p>
-<p><strong>Arguments</strong>:</p>
-<ul>
-<li><code>method</code> <em>str</em> - HTTP method (e.g., &lsquo;GET&rsquo;, &lsquo;POST&rsquo;). Defaults to &lsquo;GET&rsquo;.</li>
-<li><code>path</code> <em>str</em> - URL path for the request. Defaults to &lsquo;/&rsquo;.</li>
-<li><code>**kwargs</code> - Additional keyword arguments for query parameters, headers,
-  and data.</li>
-</ul>
-<p><strong>Returns</strong>:</p>
-<ul>
-<li><code>Request</code> - Configured HTTP request object.</li>
-</ul>
-<p><a id="usrv.req.manage_response"></a></p>
-<h2 id="manage_response">manage_response</h2>
-<pre><code class="language-python">def manage_response(resp: HTTPResponse) -&gt; typing.Union[dict, str]
-</code></pre>
-<p>Parses the HTTP response.</p>
-<p><strong>Arguments</strong>:</p>
-<ul>
-<li><code>resp</code> <em>HTTPResponse</em> - HTTP response object.</li>
-</ul>
-<p><strong>Returns</strong>:</p>
-<p>typing.Union[dict, str]: Decoded response content.</p>
 <p><a id="usrv.req.RequestCache"></a></p>
 <h2 id="requestcache-objects">RequestCache Objects</h2>
 <pre><code class="language-python">class RequestCache()
@@ -279,6 +257,103 @@ def generate_key(method: str, path: str, **kwargs) -&gt; str
 <pre><code class="language-python">def set(key: str, request: Request) -&gt; None
 </code></pre>
 <p>Add an entry to the cache.</p>
+<p><a id="usrv.req.FormData"></a></p>
+<h2 id="formdata-objects">FormData Objects</h2>
+<pre><code class="language-python">class FormData(list)
+</code></pre>
+<p>Implementation of multipart/form-data encoder.</p>
+<p>This class provides methods to construct, encode, and decode
+multipart/form-data content, as described in <a href="https://datatracker.ietf.org/doc/html/rfc7578">RFC 7578</a>.</p>
+<p><a id="usrv.req.FormData.append_json"></a></p>
+<h3 id="formdataappend_json">FormData.append_json</h3>
+<pre><code class="language-python">def append_json(name: str, value: dict = {}, **kwval) -&gt; None
+</code></pre>
+<p>Add a JSON object to the multipart body.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>name</code> <em>str</em> - The name of the form field.</li>
+<li><code>value</code> <em>dict, optional</em> - A dictionary representing the JSON object.
+  Defaults to None.</li>
+<li><code>kwval</code> - Additional key-value pairs to include in the JSON object.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>typing.Any</code> - The updated FormData instance.</li>
+</ul>
+<p><a id="usrv.req.FormData.append_value"></a></p>
+<h3 id="formdataappend_value">FormData.append_value</h3>
+<pre><code class="language-python">def append_value(name: str, value: typing.Union[str, bytes],
+                 **headers) -&gt; None
+</code></pre>
+<p>Add a text or binary value to the multipart body.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>name</code> <em>str</em> - The name of the form field.</li>
+<li><code>value</code> <em>Union[str, bytes]</em> - The value to add. Can be a string or
+  bytes.</li>
+<li><code>headers</code> - Additional headers to include for this field.</li>
+</ul>
+<p><a id="usrv.req.FormData.append_file"></a></p>
+<h3 id="formdataappend_file">FormData.append_file</h3>
+<pre><code class="language-python">def append_file(name: str, path: str) -&gt; typing.Any
+</code></pre>
+<p>Add a file to the multipart body.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>name</code> <em>str</em> - The name of the form field.</li>
+<li><code>path</code> <em>str</em> - The path to the file to be added.</li>
+</ul>
+<p><strong>Raises</strong>:</p>
+<ul>
+<li><code>IOError</code> - If the file does not exist.</li>
+</ul>
+<p><a id="usrv.req.FormData.dumps"></a></p>
+<h3 id="formdatadumps">FormData.dumps</h3>
+<pre><code class="language-python">def dumps() -&gt; str
+</code></pre>
+<p>Encode the FormData instance as a multipart/form-data body.</p>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - The encoded body and the corresponding Content-Type header.</li>
+</ul>
+<p><a id="usrv.req.FormData.dump"></a></p>
+<h3 id="formdatadump">FormData.dump</h3>
+<pre><code class="language-python">def dump(folder: str = None) -&gt; None
+</code></pre>
+<p>Save the FormData instance to files in a directory.</p>
+<p>Each field in the FormData is written to a separate file.
+Additional metadata is saved as JSON.</p>
+<p><strong>Returns</strong>:</p>
+<p>None</p>
+<p><a id="usrv.req.FormData.encode"></a></p>
+<h3 id="formdataencode">FormData.encode</h3>
+<pre><code class="language-python">@staticmethod
+def encode(data: dict) -&gt; str
+</code></pre>
+<p>Encode a dictionary as a multipart/form-data string.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>data</code> <em>dict</em> - The data to encode. Can include filepath, strings, or
+  FormData instances.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>str</code> - The encoded multipart/form-data string.</li>
+</ul>
+<p><a id="usrv.req.FormData.decode"></a></p>
+<h3 id="formdatadecode">FormData.decode</h3>
+<pre><code class="language-python">@staticmethod
+def decode(data: str) -&gt; typing.Any
+</code></pre>
+<p>Decode a multipart/form-data string into a FormData instance.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>data</code> <em>str</em> - The multipart/form-data string to decode.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>FormData</code> - The decoded FormData instance.</li>
+</ul>
 <p><a id="usrv.req.Endpoint"></a></p>
 <h2 id="endpoint-objects">Endpoint Objects</h2>
 <pre><code class="language-python">class Endpoint()
@@ -295,7 +370,7 @@ def generate_key(method: str, path: str, **kwargs) -&gt; str
 <h3 id="endpoint__init__">Endpoint.__init__</h3>
 <pre><code class="language-python">def __init__(master: typing.Any = None,
              name: str = &quot;&quot;,
-             method: Callable = manage_response) -&gt; None
+             method: Callable = None) -&gt; None
 </code></pre>
 <p>Initializes an Endpoint instance.</p>
 <p><strong>Arguments</strong>:</p>
@@ -319,7 +394,7 @@ def generate_key(method: str, path: str, **kwargs) -&gt; str
 </ul>
 <p><a id="usrv.req.Endpoint.__call__"></a></p>
 <h3 id="endpoint__call__">Endpoint.__call__</h3>
-<pre><code class="language-python">def __call__(**kwargs) -&gt; typing.Any
+<pre><code class="language-python">def __call__(*args, **kwargs) -&gt; typing.Any
 </code></pre>
 <p>Executes the endpoint&rsquo;s method with provided arguments.</p>
 <p><strong>Arguments</strong>:</p>
@@ -342,6 +417,33 @@ def connect(peer: str) -&gt; typing.Union[int, bool]
 </ul>
 <p><strong>Returns</strong>:</p>
 <p>typing.Union[int, bool]: HTTP status code or False on failure.</p>
+<p><a id="usrv.req.build_request"></a></p>
+<h2 id="build_request">build_request</h2>
+<pre><code class="language-python">def build_request(method: str = &quot;GET&quot;, path: str = &quot;/&quot;, **kwargs) -&gt; Request
+</code></pre>
+<p>Builds an HTTP request object.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>method</code> <em>str</em> - HTTP method (e.g., &lsquo;GET&rsquo;, &lsquo;POST&rsquo;). Defaults to &lsquo;GET&rsquo;.</li>
+<li><code>path</code> <em>str</em> - URL path for the request. Defaults to &lsquo;/&rsquo;.</li>
+<li><code>**kwargs</code> - Additional keyword arguments for query parameters, headers,
+  and data.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<ul>
+<li><code>Request</code> - Configured HTTP request object.</li>
+</ul>
+<p><a id="usrv.req.manage_response"></a></p>
+<h2 id="manage_response">manage_response</h2>
+<pre><code class="language-python">def manage_response(resp: HTTPResponse) -&gt; typing.Union[dict, str]
+</code></pre>
+<p>Parses the HTTP response.</p>
+<p><strong>Arguments</strong>:</p>
+<ul>
+<li><code>resp</code> <em>HTTPResponse</em> - HTTP response object.</li>
+</ul>
+<p><strong>Returns</strong>:</p>
+<p>typing.Union[dict, str]: Decoded response content.</p>
 <p><a id="usrv.req.build_endpoint"></a></p>
 <h2 id="build_endpoint">build_endpoint</h2>
 <pre><code class="language-python">def build_endpoint(http_req: str = &quot;GET&quot;,
@@ -352,7 +454,7 @@ def connect(peer: str) -&gt; typing.Union[int, bool]
 <p><strong>Arguments</strong>:</p>
 <ul>
 <li><code>http_req</code> <em>str</em> - Name of HTTP method (i.e. HEAD, GET, POST etc&hellip;).</li>
-<li><code>encoder</code> <em>Callable</em> - Data encoder function to use.</li>
+<li><code>encoder</code> <em>Callable</em> - Data encoder function to use. (defaults to json)</li>
 <li><code>timeout</code> <em>int</em> - Request timeout in seconds.</li>
 </ul>
 <p><strong>Returns</strong>:</p>
