@@ -63,10 +63,10 @@ def y_from_x(x: int) -> int:
 
 def encode(point: tuple) -> str:
     """
-    Compresses `secp256k1` point or signature.
+    Compresses `secp256k1` point.
 
     Arguments:
-        tuple: Point on `secp256k1` curve or `secp256k1` signature.
+        tuple: Point on `secp256k1` curve.
 
     Returns:
         pubkey (str): Compressed and encoded point.
