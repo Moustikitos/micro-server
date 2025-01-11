@@ -2,8 +2,6 @@
 
 # secp256k1
 
-
-
 <a id="usrv.secp256k1.EncryptionError"></a>
 
 ## EncryptionError Objects
@@ -44,6 +42,25 @@ def y_from_x(x: int) -> int
 ```
 
 Computes y from x according to `secp256k1` equation.
+
+<a id="usrv.secp256k1.encode"></a>
+
+## encode
+
+```python
+def encode(point: tuple) -> str
+```
+
+Compresses `secp256k1` point or signature.
+
+**Arguments**:
+
+- `tuple` - Point on `secp256k1` curve or `secp256k1` signature.
+  
+
+**Returns**:
+
+- `pubkey` _str_ - Compressed and encoded point.
 
 <a id="usrv.secp256k1.decode"></a>
 
@@ -211,7 +228,7 @@ Generates a private and public key pair for SECP256k1.
 def sign(message: str, private_key: int) -> str
 ```
 
-Signs a message using a private key.
+Generates an ECDSA message signature using a private key.
 
 **Arguments**:
 
@@ -326,4 +343,39 @@ Decrypts a message using a private key.
 **Returns**:
 
 - `str` - Message as plaintext.
+
+<a id="usrv.secp256k1.dump_secret"></a>
+
+## dump\_secret
+
+```python
+def dump_secret(secret: str = None) -> None
+```
+
+Securely stores a secret using a PIN.
+
+The secret is encrypted with AES using a key derived from a PIN.
+The encrypted file is saved in a specified directory.
+
+**Arguments**:
+
+- `secret` _str_ - The secret to be encrypted and stored.
+
+<a id="usrv.secp256k1.load_secret"></a>
+
+## load\_secret
+
+```python
+def load_secret() -> typing.Optional[str]
+```
+
+Loads and decrypts a secret using a PIN.
+
+The file containing the secret is identified by a SHA256 hash of the PIN.
+If the file exists, its contents are decrypted and returned.
+
+**Returns**:
+
+- `Optional[str]` - The decrypted secret, or None if the file does not
+  exist.
 

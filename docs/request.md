@@ -118,6 +118,7 @@ False
         <p>Error code explanation: 5e234e6f68f30a056c2bd53e97b785e49895b1ae85d3cf323a95ot encrypted for public key pP15aGDcFoqGTHTReiIfEvUcQ2c3AQjYcgCeLgKhpa38Rsub69i6RifuYPGtOOyld7j6y0LP6i0aqBuFYcSmTQ==.</p>
     </body>
 </html>
+>>> # target public key is not the client public key
 >>> req.POST.api.endpoint(
 ...   value1=1, value2=2, _headers={"Sender-Public-Key":puk}
 ... )
@@ -126,47 +127,6 @@ cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39 not encrypt
 'cc72124506d28ccb7bda70d6649f3f007bca1b8f1d829b047267ea543aa34c96ab39'
 >>>
 ```
-
-<a id="usrv.req.build_request"></a>
-
-## build\_request
-
-```python
-def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request
-```
-
-Builds an HTTP request object.
-
-**Arguments**:
-
-- `method` _str_ - HTTP method (e.g., 'GET', 'POST'). Defaults to 'GET'.
-- `path` _str_ - URL path for the request. Defaults to '/'.
-- `**kwargs` - Additional keyword arguments for query parameters, headers,
-  and data.
-  
-
-**Returns**:
-
-- `Request` - Configured HTTP request object.
-
-<a id="usrv.req.manage_response"></a>
-
-## manage\_response
-
-```python
-def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]
-```
-
-Parses the HTTP response.
-
-**Arguments**:
-
-- `resp` _HTTPResponse_ - HTTP response object.
-  
-
-**Returns**:
-
-  typing.Union[dict, str]: Decoded response content.
 
 <a id="usrv.req.RequestCache"></a>
 
@@ -224,6 +184,151 @@ def set(key: str, request: Request) -> None
 
 Add an entry to the cache.
 
+<a id="usrv.req.FormData"></a>
+
+## FormData Objects
+
+```python
+class FormData(list)
+```
+
+Implementation of multipart/form-data encoder.
+
+This class provides methods to construct, encode, and decode
+multipart/form-data content, as described in [RFC 7578](https://datatracker.ietf.org/doc/html/rfc7578).
+
+<a id="usrv.req.FormData.append_json"></a>
+
+### FormData.append\_json
+
+```python
+def append_json(name: str, value: dict = {}, **kwval) -> None
+```
+
+Add a JSON object to the multipart body.
+
+**Arguments**:
+
+- `name` _str_ - The name of the form field.
+- `value` _dict, optional_ - A dictionary representing the JSON object.
+  Defaults to None.
+- `kwval` - Additional key-value pairs to include in the JSON object.
+  
+
+**Returns**:
+
+- `typing.Any` - The updated FormData instance.
+
+<a id="usrv.req.FormData.append_value"></a>
+
+### FormData.append\_value
+
+```python
+def append_value(name: str, value: typing.Union[str, bytes],
+                 **headers) -> None
+```
+
+Add a text or binary value to the multipart body.
+
+**Arguments**:
+
+- `name` _str_ - The name of the form field.
+- `value` _Union[str, bytes]_ - The value to add. Can be a string or
+  bytes.
+- `headers` - Additional headers to include for this field.
+
+<a id="usrv.req.FormData.append_file"></a>
+
+### FormData.append\_file
+
+```python
+def append_file(name: str, path: str) -> typing.Any
+```
+
+Add a file to the multipart body.
+
+**Arguments**:
+
+- `name` _str_ - The name of the form field.
+- `path` _str_ - The path to the file to be added.
+  
+
+**Raises**:
+
+- `IOError` - If the file does not exist.
+
+<a id="usrv.req.FormData.dumps"></a>
+
+### FormData.dumps
+
+```python
+def dumps() -> str
+```
+
+Encode the FormData instance as a multipart/form-data body.
+
+**Returns**:
+
+- `str` - The encoded body and the corresponding Content-Type header.
+
+<a id="usrv.req.FormData.dump"></a>
+
+### FormData.dump
+
+```python
+def dump(folder: str = None) -> None
+```
+
+Save the FormData instance to files in a directory.
+
+Each field in the FormData is written to a separate file.
+Additional metadata is saved as JSON.
+
+**Returns**:
+
+  None
+
+<a id="usrv.req.FormData.encode"></a>
+
+### FormData.encode
+
+```python
+@staticmethod
+def encode(data: dict) -> str
+```
+
+Encode a dictionary as a multipart/form-data string.
+
+**Arguments**:
+
+- `data` _dict_ - The data to encode. Can include filepath, strings, or
+  FormData instances.
+  
+
+**Returns**:
+
+- `str` - The encoded multipart/form-data string.
+
+<a id="usrv.req.FormData.decode"></a>
+
+### FormData.decode
+
+```python
+@staticmethod
+def decode(data: str) -> typing.Any
+```
+
+Decode a multipart/form-data string into a FormData instance.
+
+**Arguments**:
+
+- `data` _str_ - The multipart/form-data string to decode.
+  
+
+**Returns**:
+
+- `FormData` - The decoded FormData instance.
+
 <a id="usrv.req.Endpoint"></a>
 
 ## Endpoint Objects
@@ -248,7 +353,7 @@ Represents an HTTP endpoint with dynamic attribute handling.
 ```python
 def __init__(master: typing.Any = None,
              name: str = "",
-             method: Callable = manage_response) -> None
+             method: Callable = None) -> None
 ```
 
 Initializes an Endpoint instance.
@@ -283,7 +388,7 @@ Dynamically resolves sub-endpoints.
 ### Endpoint.\_\_call\_\_
 
 ```python
-def __call__(**kwargs) -> typing.Any
+def __call__(*args, **kwargs) -> typing.Any
 ```
 
 Executes the endpoint's method with provided arguments.
@@ -316,6 +421,47 @@ Tests connection to a peer endpoint and store it if success.
 **Returns**:
 
   typing.Union[int, bool]: HTTP status code or False on failure.
+
+<a id="usrv.req.build_request"></a>
+
+## build\_request
+
+```python
+def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request
+```
+
+Builds an HTTP request object.
+
+**Arguments**:
+
+- `method` _str_ - HTTP method (e.g., 'GET', 'POST'). Defaults to 'GET'.
+- `path` _str_ - URL path for the request. Defaults to '/'.
+- `**kwargs` - Additional keyword arguments for query parameters, headers,
+  and data.
+  
+
+**Returns**:
+
+- `Request` - Configured HTTP request object.
+
+<a id="usrv.req.manage_response"></a>
+
+## manage\_response
+
+```python
+def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]
+```
+
+Parses the HTTP response.
+
+**Arguments**:
+
+- `resp` _HTTPResponse_ - HTTP response object.
+  
+
+**Returns**:
+
+  typing.Union[dict, str]: Decoded response content.
 
 <a id="usrv.req.build_endpoint"></a>
 

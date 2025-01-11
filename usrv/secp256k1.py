@@ -56,10 +56,23 @@ def y_from_x(x: int) -> int:
     """
     y_sq = (pow(x, 3, P) + 7) % P
     y = pow(y_sq, (P + 1) // 4, P)
-    print(pow(y, 2, P), y_sq)
     if pow(y, 2, P) != y_sq:
         return None
     return y
+
+
+def encode(point: tuple) -> str:
+    """
+    Compresses `secp256k1` point or signature.
+
+    Arguments:
+        tuple: Point on `secp256k1` curve or `secp256k1` signature.
+
+    Returns:
+        pubkey (str): Compressed and encoded point.
+    """
+    x, y = point
+    return f"{'02' if y % 2 == 0 else '03'}{x:064x}"
 
 
 def decode(puk: str) -> tuple:
@@ -221,7 +234,7 @@ def generate_keypair(secret: str = None):
 # Signature numérique (ECDSA)
 def sign(message: str, private_key: int) -> str:
     """
-    Signs a message using a private key.
+    Generates an ECDSA message signature using a private key.
 
     Args:
         message (str): The message to sign.
@@ -339,30 +352,64 @@ def decrypt(private_key: int, R: str, ciphered: str) -> str:
     return aes_decrypt(ciphered, secret)
 
 
-def dump_secret(secret: str) -> None:
+def dump_secret(secret: str = None) -> None:
+    """
+    Securely stores a secret using a PIN.
+
+    The secret is encrypted with AES using a key derived from a PIN.
+    The encrypted file is saved in a specified directory.
+
+    Args:
+        secret (str): The secret to be encrypted and stored.
+    """
+    secret = secret or getpass.getpass("Paste your secret here > ")
+    # Loop to validate the PIN input as numeric only
     pincode = "?"
     while not re.match(r"^\d*$", pincode):
         pincode = getpass.getpass("type your pincode > ")
+    # Generate the file path using the SHA256 hash of the PIN
     filename = os.path.join(
-        KEYS, f"{hashlib.sha256(pincode.encode("utf-8")).hexdigest()}.key"
+        KEYS, f"{hashlib.sha256(pincode.encode('utf-8')).hexdigest()}.key"
     )
+    # Create necessary directories if they don't exist
     os.makedirs(os.path.dirname(filename), exist_ok=True)
+    # Encrypt the secret and write it to the file
     with open(filename, "wb") as output:
         output.write(
             aes_encrypt(secret, bip39_hash(pincode).hex()).encode("utf-8")
         )
 
 
-def load_secret() -> str:
+def load_secret() -> typing.Optional[str]:
+    """Loads and decrypts a secret using a PIN.
+
+    The file containing the secret is identified by a SHA256 hash of the PIN.
+    If the file exists, its contents are decrypted and returned.
+
+    Returns:
+        Optional[str]: The decrypted secret, or None if the file does not
+            exist.
+    """
+    # Initialize the PIN to enter the validation loop
     pincode = "?"
     while not re.match(r"^\d*$", pincode):
         pincode = getpass.getpass("type your pincode > ")
+    # Generate the file path using the SHA256 hash of the PIN
     filename = os.path.join(
-        KEYS, f"{hashlib.sha256(pincode.encode("utf-8")).hexdigest()}.key"
+        KEYS, f"{hashlib.sha256(pincode.encode('utf-8')).hexdigest()}.key"
     )
+    # Check if the file exists
     if os.path.exists(filename):
+        # Read, decrypt and return the file's contents
         with open(filename, "rb") as input_:
             secret = aes_decrypt(
                 input_.read().decode("utf-8"), bip39_hash(pincode).hex()
             )
         return secret
+    # Return None if the file does not exist
+
+
+def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
+    prk = int.from_bytes(bip39_hash(secret or load_secret(), salt)) % N
+    r, s = b64decode(sign(message, prk))
+    return f"{r:064x}{s:064x}"

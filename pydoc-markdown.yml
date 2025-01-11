@@ -32,8 +32,7 @@ renderer:
   pages:
     - title: Home
       name: index
-      contents:
-      - usrv.FormData.*
+      source: README.md
     - title: Bindings
       contents:
       - usrv.route.*
