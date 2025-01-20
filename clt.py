@@ -47,6 +47,8 @@ while True:
                 else:
                     args += (elem,)
             print(">", endpoint(**kwargs))
+        elif cmd[0] == "/eval":
+            eval(" ".join(cmd[1:]), globals(), locals())
     except KeyboardInterrupt:
         break
     except Exception as error:
