@@ -13,7 +13,7 @@ For more information, see: https://www.python.org/dev/peps/pep-3333
 import traceback
 import urllib.parse as urlparse
 
-from usrv import LOG, secp256k1, route
+from usrv import LOG, secp256k1, route, check_nonce
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler
 
@@ -44,13 +44,22 @@ def wsgi_call(
         [k.replace("HTTP_", "").replace("_", "-").lower(), v]
         for k, v in environ.items() if k.startswith("HTTP_")
     )
-
+    # replay attack mitigation
+    sender_puk = headers.get("sender-public-key", None)
+    nonce = headers.get("nonce", "")
+    sender_id = sender_puk or headers.get(
+        'x-forwarded-for', environ['REMOTE_ADDR']
+    )
+    if not check_nonce(nonce, sender_id):
+        LOG.error(f"Precondition Failed:\n{nonce} already used")
+        start_response("412", ())
+        return [b"nonce already used"]
     # manage encrypted body
     puk = headers.get("ephemeral-public-key", None)
     sender_puk = headers.get("sender-public-key", None)
     signature = headers.get("sender-signature", None)
     if all([puk, sender_puk, signature]) and secp256k1.verify(
-        http_input+puk, signature, sender_puk
+        http_input + puk + nonce, signature, sender_puk
     ):
         decrypted = secp256k1.decrypt(route.PRIVATE_KEY, puk, http_input)
         if decrypted is False:
@@ -62,7 +71,6 @@ def wsgi_call(
             return [b"encryption error"]
         else:
             http_input = decrypted
-
     # Loop through registered endpoints for the given method.
     path = urlparse.quote(environ.get('PATH_INFO', ''))
     endpoints = getattr(cls, "ENDPOINTS", object())
@@ -110,7 +118,7 @@ def wsgi_call(
                         ["Sender-Public-Key", route.PUBLIC_KEY],
                         [
                             "Sender-Signature",
-                            secp256k1.sign(data+R, route.PRIVATE_KEY)
+                            secp256k1.sign(data + R, route.PRIVATE_KEY)
                         ]
                     )
                 start_response(

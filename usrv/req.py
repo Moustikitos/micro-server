@@ -145,7 +145,7 @@ import binascii
 import traceback
 import mimetypes
 
-from usrv import LOG, DATA, dumpJson, secp256k1
+from usrv import LOG, DATA, create_nonce, dumpJson, secp256k1
 from collections import OrderedDict
 from collections.abc import Callable
 from urllib.request import Request, OpenerDirector, HTTPHandler
@@ -550,8 +550,8 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
     # Check if the request is already cached
     key = RequestCache.generate_key(method, path, **kwargs)
     cached_request = Endpoint.cache.get(key)
-    if cached_request is not None:
-        # TODO: update nonce
+    if cached_request is not None and cached_request.data is None:
+        cached_request.headers["Nonce"] = create_nonce()
         return cached_request
 
     method = method.upper()
@@ -578,9 +578,12 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
             headers["Content-Type"] += f"; boundary={boundary}"
         if puk is not None:
             R, data = secp256k1.encrypt(puk, data)
+            headers["Nonce"] = create_nonce()
             headers["Ephemeral-Public-Key"] = R
             headers["Sender-Public-Key"] = PUBLIC_KEY
-            headers["Sender-Signature"] = secp256k1.sign(data+R, PRIVATE_KEY)
+            headers["Sender-Signature"] = secp256k1.sign(
+                data + R + headers["Nonce"], PRIVATE_KEY
+            )
         data = data if isinstance(data, bytes) else data.encode(LATIN_1)
 
     req = Request(
@@ -617,7 +620,7 @@ def manage_response(resp: HTTPResponse) -> typing.Union[dict, str]:
     sender_puk = resp.headers.get("sender-public-key", None)
     signature = resp.headers.get("sender-signature", None)
     if all([puk, sender_puk, signature]) and secp256k1.verify(
-        http_input+puk, signature, sender_puk
+        http_input + puk, signature, sender_puk
     ):
         decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
         if decrypted is False:

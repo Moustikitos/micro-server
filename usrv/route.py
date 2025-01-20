@@ -34,7 +34,7 @@ import traceback
 
 import urllib.parse as urlparse
 
-from usrv import LOG, secp256k1
+from usrv import LOG, secp256k1, check_nonce
 from collections.abc import Callable
 from collections import OrderedDict, namedtuple
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -129,14 +129,20 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
             "https://%s:%s%s" if isinstance(self.server.socket, ssl.SSLSocket)
             else "http://%s:%s%s"
         ) % (self.server.server_address + (self.path, ))
-        headers = dict([k.lower(), v] for k, v in dict(self.headers).items())
-
+        # replay attack mitigation
+        sender_puk = self.headers.get("sender-public-key", None)
+        nonce = self.headers.get("nonce", "")
+        if not check_nonce(nonce, sender_puk or self.client_address[0]):
+            self.send_error(
+                412, "Precondition Failed", f"{nonce} already used"
+            )
+            self.end_headers()
+            return 0
         # manage encrypted body
-        puk = headers.get("ephemeral-public-key", None)
-        sender_puk = headers.get("sender-public-key", None)
-        signature = headers.get("sender-signature", None)
+        puk = self.headers.get("ephemeral-public-key", None)
+        signature = self.headers.get("sender-signature", None)
         if all([puk, sender_puk, signature]) and secp256k1.verify(
-            http_input+puk, signature, sender_puk
+            http_input + puk + nonce, signature, sender_puk
         ):
             decrypted = secp256k1.decrypt(PRIVATE_KEY, puk, http_input)
             if decrypted is False:
@@ -148,7 +154,6 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                 return 0
             else:
                 http_input = decrypted
-
         # Loop through registered endpoints for the given method.
         path = urlparse.urlparse(self.path).path
         endpoints = getattr(uHTTPRequestHandler, "ENDPOINTS", object())
@@ -156,7 +161,7 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
             if regexp.match(path):
                 try:
                     status, *result = callback(
-                        url, headers, http_input or None
+                        url, dict(self.headers), http_input or None
                     )
                 except TypeError as error:
                     LOG.error(
@@ -169,6 +174,7 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                         f"response"
                     )
                     self.end_headers()
+                    return 0
                 except Exception as error:
                     LOG.error(
                         f"python function {callback} failed during execution:"
@@ -206,7 +212,7 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                         self.send_header("Sender-Public-Key", PUBLIC_KEY)
                         self.send_header(
                             "Sender-Signature",
-                            secp256k1.sign(data+R, PRIVATE_KEY)
+                            secp256k1.sign(data + R, PRIVATE_KEY)
                         )
                     if isinstance(data, str):
                         data = data.encode("latin-1")
@@ -214,7 +220,6 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
                     self.send_header('Content-length', len(data))
                     self.end_headers()
                     return self.wfile.write(data)
-
         # if for loop exit, then no endpoint found
         self.send_error(404, "Endpoint not defined")
         self.end_headers()

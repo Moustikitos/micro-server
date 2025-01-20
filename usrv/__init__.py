@@ -35,17 +35,23 @@ configuration for host, port, and threading options.
 import io
 import os
 import json
+import time
 import typing
 import logging
+import threading
+
+from datetime import datetime, timezone, timedelta
 
 # set basic logging
 logging.basicConfig()
 LOG = logging.getLogger("usrv")
 # configuration pathes
+NONCES: typing.Mapping[str, list] = {}
+NONCE_DELAY: int = 10  # nonce validity in seconds
+DAEMON_SEMAPHORE = threading.Semaphore()
 ROOT = os.path.abspath(os.path.dirname(__file__))
 DATA = os.path.abspath(os.path.join(ROOT, ".data"))
 JSON = os.path.abspath(os.path.join(ROOT, ".json"))
-NONCES = {}
 __path__.append(os.path.abspath(os.path.join(ROOT, "plugins")))
 
 
@@ -83,11 +89,52 @@ def dumpJson(data: typing.Any, name: str, folder: str = None) -> None:
         pass
 
 
-# TODO: mitigate replay attacks
-def create_nonce() -> str: pass
+def daemonize(func):
+    def wrapper(*args, **kwargs):
+        if DAEMON_SEMAPHORE.acquire():
+            try:
+                threading.Thread(
+                    target=func, args=args, kwargs=kwargs, daemon=True
+                ).start()
+            finally:
+                DAEMON_SEMAPHORE.release()
+    return wrapper
 
 
-def push_nonce(nonce: str, puk: str) -> str: pass
+def create_nonce() -> str:
+    dt = datetime.fromtimestamp(time.time()).astimezone(timezone.utc)
+    return dt.isoformat()
 
 
-def check_nonce(nonce: str, puk: str) -> bool: pass
+def push_nonce(nonce: str, identity: str) -> bool:
+    try:
+        delta = datetime.fromtimestamp(time.time()).astimezone(timezone.utc) -\
+            datetime.fromisoformat(nonce)
+        if delta > timedelta(seconds=NONCE_DELAY):
+            return False
+    except Exception:
+        return False
+    else:
+        if identity in NONCES.get(nonce, []):
+            return False
+        NONCES[nonce] = NONCES.get(nonce, []) + [identity]
+        return True
+
+
+def check_nonce(nonce: str, identity: str) -> bool:
+    if not nonce:
+        return True
+    elif push_nonce(nonce, identity):
+        flush_nonce()
+        return True
+    return False
+
+
+@daemonize
+def flush_nonce() -> None:
+    delay = timedelta(seconds=NONCE_DELAY)
+    for nonce in list(NONCES.keys()):
+        delta = datetime.fromtimestamp(time.time()).astimezone(timezone.utc) -\
+            datetime.fromisoformat(nonce)
+        if delta > delay:
+            NONCES.pop(nonce)
