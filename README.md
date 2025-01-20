@@ -227,6 +227,7 @@ Options:
 - [x] added multipart/form-data body management to req module
 - [x] added custom client/server identification
 - [x] added secured secret dump and load
+- [x] added replay attack mitigation
 - [x] added endpoint builder
 - [x] added [pinata](https://pinata.cloud) plugin
 - [x] added [binance](https://binance.com) plugin
