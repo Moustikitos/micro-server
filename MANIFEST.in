@@ -1,3 +1,4 @@
-include wsgi_srv.py
+include wsgi_srv.py, clt.py
+include usrv/plugins/*.py
 include LICENSE
 include VERSION
