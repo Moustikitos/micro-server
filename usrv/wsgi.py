@@ -13,7 +13,7 @@ For more information, see: https://www.python.org/dev/peps/pep-3333
 import traceback
 import urllib.parse as urlparse
 
-from usrv import LOG, secp256k1, route, check_nonce
+from usrv import LOG, NONCES, secp256k1, route
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler
 
@@ -50,7 +50,7 @@ def wsgi_call(
     sender_id = sender_puk or headers.get(
         'x-forwarded-for', environ['REMOTE_ADDR']
     )
-    if not check_nonce(nonce, sender_id):
+    if not NONCES.check_nonce(nonce, sender_id):
         LOG.error(f"Precondition Failed:\n{nonce} already used")
         start_response("412", ())
         return [b"nonce already used"]

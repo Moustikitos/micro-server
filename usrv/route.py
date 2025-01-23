@@ -34,7 +34,7 @@ import traceback
 
 import urllib.parse as urlparse
 
-from usrv import LOG, secp256k1, check_nonce
+from usrv import LOG, NONCES, secp256k1  # , check_nonce
 from collections.abc import Callable
 from collections import OrderedDict, namedtuple
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -132,7 +132,7 @@ class uHTTPRequestHandler(BaseHTTPRequestHandler):
         # replay attack mitigation
         sender_puk = self.headers.get("sender-public-key", None)
         nonce = self.headers.get("nonce", "")
-        if not check_nonce(nonce, sender_puk or self.client_address[0]):
+        if not NONCES.check_nonce(nonce, sender_puk or self.client_address[0]):
             self.send_error(
                 412, "Precondition Failed", f"{nonce} already used"
             )

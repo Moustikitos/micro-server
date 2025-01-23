@@ -145,7 +145,7 @@ import binascii
 import traceback
 import mimetypes
 
-from usrv import LOG, DATA, create_nonce, dumpJson, secp256k1
+from usrv import LOG, DATA, NONCES, dumpJson, secp256k1
 from collections import OrderedDict
 from collections.abc import Callable
 from urllib.request import Request, OpenerDirector, HTTPHandler
@@ -551,7 +551,7 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
     key = RequestCache.generate_key(method, path, **kwargs)
     cached_request = Endpoint.cache.get(key)
     if cached_request is not None and cached_request.data is None:
-        cached_request.headers["Nonce"] = create_nonce()
+        cached_request.headers["Nonce"] = NONCES.create_nonce()
         return cached_request
 
     method = method.upper()
@@ -578,7 +578,7 @@ def build_request(method: str = "GET", path: str = "/", **kwargs) -> Request:
             headers["Content-Type"] += f"; boundary={boundary}"
         if puk is not None:
             R, data = secp256k1.encrypt(puk, data)
-            headers["Nonce"] = create_nonce()
+            headers["Nonce"] = NONCES.create_nonce()
             headers["Ephemeral-Public-Key"] = R
             headers["Sender-Public-Key"] = PUBLIC_KEY
             headers["Sender-Signature"] = secp256k1.sign(
