@@ -46,9 +46,6 @@ from datetime import datetime, timezone, timedelta
 logging.basicConfig()
 LOG = logging.getLogger("usrv")
 # configuration pathes
-NONCES: typing.Mapping[str, list] = {}
-NONCE_DELAY: int = 10  # nonce validity in seconds
-DAEMON_SEMAPHORE = threading.Semaphore()
 ROOT = os.path.abspath(os.path.dirname(__file__))
 DATA = os.path.abspath(os.path.join(ROOT, ".data"))
 JSON = os.path.abspath(os.path.join(ROOT, ".json"))
@@ -89,52 +86,53 @@ def dumpJson(data: typing.Any, name: str, folder: str = None) -> None:
         pass
 
 
-def daemonize(func):
-    def wrapper(*args, **kwargs):
-        if DAEMON_SEMAPHORE.acquire():
-            try:
-                threading.Thread(
-                    target=func, args=args, kwargs=kwargs, daemon=True
-                ).start()
-            finally:
-                DAEMON_SEMAPHORE.release()
-    return wrapper
+class NonceManager:
+    def __init__(self, delay=10):
+        self.nonces = {}
+        self.delay = timedelta(seconds=delay)
+        self.lock = threading.Lock()
 
+    def create_nonce(self) -> str:
+        return datetime.now(timezone.utc).isoformat()
 
-def create_nonce() -> str:
-    dt = datetime.fromtimestamp(time.time()).astimezone(timezone.utc)
-    return dt.isoformat()
-
-
-def push_nonce(nonce: str, identity: str) -> bool:
-    try:
-        delta = datetime.fromtimestamp(time.time()).astimezone(timezone.utc) -\
-            datetime.fromisoformat(nonce)
-        if delta > timedelta(seconds=NONCE_DELAY):
+    def push_nonce(self, nonce, identity):
+        try:
+            delta = datetime.now(timezone.utc) - datetime.fromisoformat(nonce)
+            if delta > self.delay:
+                return False
+        except ValueError:
             return False
-    except Exception:
+
+        with self.lock:
+            if identity in self.nonces.get(nonce, []):
+                return False
+            self.nonces[nonce] = self.nonces.get(nonce, []) + [identity]
+        return True
+
+    def check_nonce(self, nonce: str, identity: str) -> bool:
+        if not nonce:
+            return True
+        elif self.push_nonce(nonce, identity):
+            return True
         return False
-    else:
-        if identity in NONCES.get(nonce, []):
-            return False
-        NONCES[nonce] = NONCES.get(nonce, []) + [identity]
-        return True
+
+    def flush_nonce(self):
+        now = datetime.now(timezone.utc)
+        expired = [
+            nonce for nonce, identities in self.nonces.items()
+            if now - datetime.fromisoformat(nonce) > self.delay
+        ]
+        with self.lock:
+            for nonce in expired:
+                self.nonces.pop(nonce)
+
+    def start_flusher(self):
+        def flusher():
+            while True:
+                time.sleep(2 * self.delay.total_seconds())
+                self.flush_nonce()
+        thread = threading.Thread(target=flusher, daemon=True)
+        thread.start()
 
 
-def check_nonce(nonce: str, identity: str) -> bool:
-    if not nonce:
-        return True
-    elif push_nonce(nonce, identity):
-        flush_nonce()
-        return True
-    return False
-
-
-@daemonize
-def flush_nonce() -> None:
-    delay = timedelta(seconds=NONCE_DELAY)
-    for nonce in list(NONCES.keys()):
-        delta = datetime.fromtimestamp(time.time()).astimezone(timezone.utc) -\
-            datetime.fromisoformat(nonce)
-        if delta > delay:
-            NONCES.pop(nonce)
+NONCES = NonceManager()
