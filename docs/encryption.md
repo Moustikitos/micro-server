@@ -379,3 +379,38 @@ If the file exists, its contents are decrypted and returned.
 - `Optional[str]` - The decrypted secret, or None if the file does not
   exist.
 
+<a id="usrv.secp256k1.raw_sign"></a>
+
+## raw\_sign
+
+```python
+def raw_sign(message: str, secret: str = None, salt: str = "") -> str
+```
+
+Signs a message using a private key derived from a secret and a salt.
+
+This function generates a private key based on the provided secret and salt
+using the BIP39 hashing method. It then creates a digital signature for the
+message using the ECDSA algorithm and SECP256k1 curve. The signature is
+returned as a concatenated hexadecimal string.
+
+**Arguments**:
+
+- `message` _str_ - The message to sign.
+- `secret` _str, optional_ - The secret used to derive the private key. If
+  not provided, the function attempts to load a saved secret.
+- `salt` _str, optional_ - An additional salt value to derive the private
+  key.
+  
+
+**Returns**:
+
+- `str` - The hexadecimal-encoded signature as a single string, where the
+  first 64 characters represent 'r' and the next 64 represent 's'.
+  
+
+**Example**:
+
+  >>> raw_sign("Hello, world!", secret="my_secret", salt="my_salt")
+  'd2b7fbc6790b4f8e52e01d0c42c65a7...'
+
