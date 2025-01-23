@@ -6,6 +6,7 @@ import re
 import pyaes
 import typing
 import base64
+import secrets
 import hashlib
 import getpass
 import unicodedata
@@ -226,7 +227,7 @@ def generate_keypair(secret: str = None):
     if secret is not None:
         private_key = int.from_bytes(bip39_hash(secret)) % N
     else:
-        private_key = int.from_bytes(os.urandom(32), 'big') % N
+        private_key = secrets.randbelow(N)
     public_key = point_multiply(private_key, G)
     return private_key, b64encode(public_key)
 
@@ -246,7 +247,7 @@ def sign(message: str, private_key: int) -> str:
     z = int(hashlib.sha256(message.encode()).hexdigest(), 16) % N
     r, s = 0, 0
     while r == 0 or s == 0:
-        k = int.from_bytes(os.urandom(32), 'big') % N
+        k = secrets.randbelow(N)  # int.from_bytes(os.urandom(32), 'big') % N
         x, _ = point_multiply(k, G)
         r = x % N
         s = ((z + r * private_key) * mod_inverse(k, N)) % N
@@ -327,7 +328,7 @@ def encrypt(public_key: str, message: str) -> typing.Tuple[str, str]:
         tuple: A tuple containing the base64-encoded R value and the encrypted
             message as a hexadecimal string.
     """
-    tmp_prk = int.from_bytes(os.urandom(32), "big") % N
+    tmp_prk = secrets.randbelow(N)  # int.from_bytes(os.urandom(32), "big") % N
     R = point_multiply(tmp_prk, G)
 
     S = point_multiply(tmp_prk, b64decode(public_key))
