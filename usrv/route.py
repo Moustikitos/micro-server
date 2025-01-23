@@ -34,7 +34,7 @@ import traceback
 
 import urllib.parse as urlparse
 
-from usrv import LOG, NONCES, secp256k1  # , check_nonce
+from usrv import LOG, NONCES, secp256k1
 from collections.abc import Callable
 from collections import OrderedDict, namedtuple
 from http.server import BaseHTTPRequestHandler, HTTPServer

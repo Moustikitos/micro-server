@@ -247,7 +247,7 @@ def sign(message: str, private_key: int) -> str:
     z = int(hashlib.sha256(message.encode()).hexdigest(), 16) % N
     r, s = 0, 0
     while r == 0 or s == 0:
-        k = secrets.randbelow(N)  # int.from_bytes(os.urandom(32), 'big') % N
+        k = secrets.randbelow(N)
         x, _ = point_multiply(k, G)
         r = x % N
         s = ((z + r * private_key) * mod_inverse(k, N)) % N
@@ -328,7 +328,7 @@ def encrypt(public_key: str, message: str) -> typing.Tuple[str, str]:
         tuple: A tuple containing the base64-encoded R value and the encrypted
             message as a hexadecimal string.
     """
-    tmp_prk = secrets.randbelow(N)  # int.from_bytes(os.urandom(32), "big") % N
+    tmp_prk = secrets.randbelow(N)
     R = point_multiply(tmp_prk, G)
 
     S = point_multiply(tmp_prk, b64decode(public_key))
@@ -411,6 +411,28 @@ def load_secret() -> typing.Optional[str]:
 
 
 def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
+    """Signs a message using a private key derived from a secret and a salt.
+
+    This function generates a private key based on the provided secret and salt
+    using the BIP39 hashing method. It then creates a digital signature for the
+    message using the ECDSA algorithm and SECP256k1 curve. The signature is
+    returned as a concatenated hexadecimal string.
+
+    Args:
+        message (str): The message to sign.
+        secret (str, optional): The secret used to derive the private key. If
+            not provided, the function attempts to load a saved secret.
+        salt (str, optional): An additional salt value to derive the private
+            key.
+
+    Returns:
+        str: The hexadecimal-encoded signature as a single string, where the
+            first 64 characters represent 'r' and the next 64 represent 's'.
+
+    Example:
+        >>> raw_sign("Hello, world!", secret="my_secret", salt="my_salt")
+        'd2b7fbc6790b4f8e52e01d0c42c65a7...'
+    """
     prk = int.from_bytes(bip39_hash(secret or load_secret(), salt)) % N
     r, s = b64decode(sign(message, prk))
     return f"{r:064x}{s:064x}"
