@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # © THOORENS Bruno
+# inspired by https://github.com/bitcoin/bips/blob/master/bip-0340/reference.py
 
 import os
 import re
@@ -14,6 +15,7 @@ import unicodedata
 from binascii import hexlify, unhexlify
 
 KEYS = os.path.abspath(os.path.join(os.path.dirname(__file__), ".keys"))
+M32 = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 
 # Elliptic Curve SECP256k1 Parameters ---------------------------------
 P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
@@ -30,6 +32,46 @@ G = (
 class EncryptionError(Exception):
     """Custom exception for encryption errors."""
     pass
+
+
+def lift_x(x: int) -> typing.Optional[tuple]:
+    if x >= P:
+        return None
+    y_sq = (pow(x, 3, P) + 7) % P
+    y = pow(y_sq, (P + 1) // 4, P)
+    if pow(y, 2, P) != y_sq:
+        return None
+    return (x, y if y & 1 == 0 else P-y)
+
+
+def bytes_from_int(x: int) -> bytes:
+    return x.to_bytes(32, byteorder="big")
+
+
+def int_from_bytes(b: bytes) -> int:
+    return int.from_bytes(b, byteorder="big")
+
+
+def bytes_from_point(P: tuple) -> bytes:
+    return bytes_from_int(P[0])
+
+
+def xor_bytes(b0: bytes, b1: bytes) -> bytes:
+    return bytes(x ^ y for (x, y) in zip(b0, b1))
+
+
+def has_even_y(P: tuple) -> bool:
+    assert bool(P)
+    return P[-1] % 2 == 0
+
+
+def xor_bytes(b0: bytes, b1: bytes) -> bytes:
+    return bytes(x ^ y for (x, y) in zip(b0, b1))
+
+
+def tagged_hash(tag: str, msg: bytes) -> bytes:
+    tag_hash = hashlib.sha256(tag.encode()).digest()
+    return hashlib.sha256(tag_hash + tag_hash + msg).digest()
 
 
 def bip39_hash(secret: str, passphrase: str = "SALT") -> bytes:
@@ -232,54 +274,6 @@ def generate_keypair(secret: str = None):
     return private_key, b64encode(public_key)
 
 
-# Signature numérique (ECDSA)
-def sign(message: str, private_key: int) -> str:
-    """
-    Generates an ECDSA message signature using a private key.
-
-    Args:
-        message (str): The message to sign.
-        private_key (int): The private key used for signing.
-
-    Returns:
-        str: The base64-encoded signature.
-    """
-    z = int(hashlib.sha256(message.encode()).hexdigest(), 16) % N
-    r, s = 0, 0
-    while r == 0 or s == 0:
-        k = secrets.randbelow(N)
-        x, _ = point_multiply(k, G)
-        r = x % N
-        s = ((z + r * private_key) * mod_inverse(k, N)) % N
-    return b64encode((r, s))
-
-
-# Vérification de signature
-def verify(message: str, signature: str, public_key: str) -> bool:
-    """
-    Verifies an ECDSA signature using a public key.
-
-    Args:
-        message (str): The signed message.
-        signature (str): The base64-encoded signature.
-        public_key (str): The base64-encoded public key.
-
-    Returns:
-        bool: True if the signature is valid, False otherwise.
-    """
-    public_key = b64decode(public_key)
-    r, s = b64decode(signature)
-    if not (1 <= r < N and 1 <= s < N):
-        return False
-
-    z = int(hashlib.sha256(message.encode()).hexdigest(), 16) % N
-    w = mod_inverse(s, N)
-    u1 = (z * w) % N
-    u2 = (r * w) % N
-    x, y = point_add(point_multiply(u1, G), point_multiply(u2, public_key))
-    return x % N == r
-
-
 def aes_encrypt(data: str, secret: str) -> str:
     """
     Encrypts data using AES with a secret.
@@ -408,6 +402,82 @@ def load_secret() -> typing.Optional[str]:
             )
         return secret
     # Return None if the file does not exist
+
+
+def sign(message: str, private_key: int, salt: int = None) -> str:
+    """
+    Generates a SHNORR message signature using a private key.
+
+    Args:
+        message (str): The message to sign.
+        private_key (int): The private key used for signing.
+
+    Returns:
+        str: The base64-encoded signature.
+    """
+    msg = hashlib.sha256(message.encode()).digest()
+    aux_rand = os.urandom(32) if not salt else bytes_from_int(salt)
+    d0 = private_key
+
+    if not (1 <= d0 <= N - 1):
+        raise ValueError(
+            'The secret key must be an integer in the range 1..nN-1.'
+        )
+    if len(aux_rand) != 32:
+        raise ValueError(
+            'aux_rand must be 32 bytes instead of %i.' % len(aux_rand)
+        )
+
+    P = point_multiply(d0, G)
+    assert P is not None
+    d = d0 if has_even_y(P) else N - d0
+    t = xor_bytes(bytes_from_int(d), tagged_hash("BIP0340/aux", aux_rand))
+    k0 = int_from_bytes(
+        tagged_hash("BIP0340/nonce", t + bytes_from_point(P) + msg)
+    ) % N
+    if k0 == 0:
+        raise RuntimeError(
+            'Failure. This happens only with negligible probability.'
+        )
+    R = point_multiply(k0, G)
+    assert R is not None
+    k = N - k0 if not has_even_y(R) else k0
+    e = int_from_bytes(
+        tagged_hash(
+            "BIP0340/challenge",
+            bytes_from_point(R) + bytes_from_point(P) + msg
+        )
+    ) % N
+    return b64encode((R[0], (k + e * d) % N))
+
+
+def verify(message: str, signature: str, public_key: str) -> bool:
+    """
+    Verifies SCHNORR signature using a public key.
+
+    Args:
+        message (str): The signed message.
+        signature (str): The base64-encoded signature.
+        public_key (str): The base64-encoded public key.
+
+    Returns:
+        bool: True if the signature is valid, False otherwise.
+    """
+    msg = hashlib.sha256(message.encode()).digest()
+    lP = lift_x(b64decode(public_key)[0])
+    r, s = b64decode(signature)
+    pubkey = bytes_from_point(lP)
+    if (lP is None) or (r >= P) or (s >= N):
+        return False
+    e = int_from_bytes(
+        tagged_hash(
+            "BIP0340/challenge", bytes_from_int(r) + pubkey + msg
+        )
+    ) % N
+    R = point_add(point_multiply(s,G), point_multiply(N - e, lP))
+    if (R is None) or (not has_even_y(R)) or (R[0] != r):
+        return False
+    return True
 
 
 def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
