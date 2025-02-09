@@ -234,7 +234,7 @@ Options:
 
 ### 0.4.3 (dev)
 
-- [x] replaced ECDSA signatures with schnorr signatures
+- [x] replaced ECDSA signatures with SCHNORR signatures
 
 ## Support this project
 

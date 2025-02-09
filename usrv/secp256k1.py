@@ -47,13 +47,13 @@ def y_from_x(x: int) -> int:
 
 def lift_x(x: int) -> typing.Optional[tuple]:
     """
-    Computes the top y-coordinate for a given x on the SECP256k1 curve.
+    Computes the coordinate for a given x on the SECP256k1 curve with y > 0.
 
     Args:
         x (int): The x-coordinate of the elliptic curve point.
 
     Returns:
-        tuple or None: The (x, y) point on the curve if it exists, otherwise
+        Union[tuple,None]: The (x, y) point on the curve if it exists, otherwise
                        None.
     """
     if x >= P:
@@ -92,73 +92,6 @@ def bytes_from_point(point: tuple) -> bytes:
     """
     Extracts the x-coordinate from an elliptic curve point and converts it to
     bytes.
-
-    Args:
-        point (tuple): The elliptic curve point (x, y).
-
-    Returns:
-        bytes: The x-coordinate in byte format.
-    """
-    return bytes_from_int(point[0])
-
-
-def xor_bytes(b0: bytes, b1: bytes) -> bytes:
-    """
-    Performs a bitwise XOR operation on two byte sequences.
-
-    Args:
-        b0 (bytes): First byte sequence.
-        b1 (bytes): Second byte sequence.
-
-    Returns:
-        bytes: The result of XOR operation.
-    """
-    return bytes(x ^ y for (x, y) in zip(b0, b1))
-
-
-def has_even_y(point: tuple) -> bool:
-    """
-    Determines whether the y-coordinate of a given point is even.
-
-    Args:
-        point (tuple): The elliptic curve point (x, y).
-
-    Returns:
-        bool: True if y is even, False otherwise.
-    """
-    assert bool(point)
-    return point[-1] % 2 == 0
-
-
-def bytes_from_int(x: int) -> bytes:
-    """
-    Converts an integer to a 32-byte big-endian representation.
-
-    Args:
-        x (int): The integer to convert.
-
-    Returns:
-        bytes: The 32-byte big-endian representation.
-    """
-    return x.to_bytes(32, byteorder="big")
-
-
-def int_from_bytes(b: bytes) -> int:
-    """
-    Converts a byte sequence to an integer.
-
-    Args:
-        b (bytes): The byte sequence to convert.
-
-    Returns:
-        int: The integer representation of the bytes.
-    """
-    return int.from_bytes(b, byteorder="big")
-
-
-def bytes_from_point(point: tuple) -> bytes:
-    """
-    Extracts the x-coordinate from an elliptic curve point and converts it to bytes.
 
     Args:
         point (tuple): The elliptic curve point (x, y).
@@ -608,11 +541,12 @@ def verify(message: str, signature: str, public_key: str) -> bool:
 
 
 def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
-    """Signs a message using a private key derived from a secret and a salt.
+    """
+    Signs a message using a private key derived from a secret and a salt.
 
     This function generates a private key based on the provided secret and salt
     using the BIP39 hashing method. It then creates a digital signature for the
-    message using the ECDSA algorithm and SECP256k1 curve. The signature is
+    message using the SCHNORR algorithm and SECP256k1 curve. The signature is
     returned as a concatenated hexadecimal string.
 
     Args:
@@ -625,10 +559,6 @@ def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
     Returns:
         str: The hexadecimal-encoded signature as a single string, where the
             first 64 characters represent 'r' and the next 64 represent 's'.
-
-    Example:
-        >>> raw_sign("Hello, world!", secret="my_secret", salt="my_salt")
-        'd2b7fbc6790b4f8e52e01d0c42c65a7...'
     """
     prk = int.from_bytes(bip39_hash(secret or load_secret(), salt)) % N
     r, s = b64decode(sign(message, prk))

@@ -12,7 +12,7 @@ Package (`usrv`) is a pure python micro server implementation. It allows python 
 $ python -m pip install git+https://github.com/Moustikitos/micro-server#egg=usrv
 ```
 
-### last version (0.4.1)
+### last version (0.4.2)
 
 ```bash
 $ python -m pip install usrv
@@ -220,7 +220,7 @@ Options:
 
 - [x] major changes and improvement, no backward compatibility with 0.3.0
 
-### 0.4.2 (dev)
+### 0.4.2
 
 - [x] improved `route.uHTTPRequstHandler` response
 - [x] added body encryption/decryption based on `secp256k1` and `AES`
@@ -231,6 +231,10 @@ Options:
 - [x] added endpoint builder
 - [x] added [pinata](https://pinata.cloud) plugin
 - [x] added [binance](https://binance.com) plugin
+
+### 0.4.3 (dev)
+
+- [x] replaced ECDSA signatures with SCHNORR signatures
 
 ## Support this project
 
