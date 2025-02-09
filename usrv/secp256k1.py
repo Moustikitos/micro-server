@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # © THOORENS Bruno
-# inspired by https://github.com/bitcoin/bips/blob/master/bip-0340/reference.py
+# schnorr: https://github.com/bitcoin/bips/blob/master/bip-0340/reference.py
 
 import os
 import re
@@ -52,17 +52,17 @@ def int_from_bytes(b: bytes) -> int:
     return int.from_bytes(b, byteorder="big")
 
 
-def bytes_from_point(P: tuple) -> bytes:
-    return bytes_from_int(P[0])
+def bytes_from_point(point: tuple) -> bytes:
+    return bytes_from_int(point[0])
 
 
 def xor_bytes(b0: bytes, b1: bytes) -> bytes:
     return bytes(x ^ y for (x, y) in zip(b0, b1))
 
 
-def has_even_y(P: tuple) -> bool:
-    assert bool(P)
-    return P[-1] % 2 == 0
+def has_even_y(point: tuple) -> bool:
+    assert bool(point)
+    return point[-1] % 2 == 0
 
 
 def xor_bytes(b0: bytes, b1: bytes) -> bytes:
@@ -421,19 +421,19 @@ def sign(message: str, private_key: int, salt: int = None) -> str:
 
     if not (1 <= d0 <= N - 1):
         raise ValueError(
-            'The secret key must be an integer in the range 1..nN-1.'
+            'The secret key must be an integer in the range 1..N-1.'
         )
     if len(aux_rand) != 32:
         raise ValueError(
             'aux_rand must be 32 bytes instead of %i.' % len(aux_rand)
         )
 
-    P = point_multiply(d0, G)
-    assert P is not None
-    d = d0 if has_even_y(P) else N - d0
+    public_key = point_multiply(d0, G)
+    assert public_key is not None
+    d = d0 if has_even_y(public_key) else N - d0
     t = xor_bytes(bytes_from_int(d), tagged_hash("BIP0340/aux", aux_rand))
     k0 = int_from_bytes(
-        tagged_hash("BIP0340/nonce", t + bytes_from_point(P) + msg)
+        tagged_hash("BIP0340/nonce", t + bytes_from_point(public_key) + msg)
     ) % N
     if k0 == 0:
         raise RuntimeError(
@@ -445,7 +445,7 @@ def sign(message: str, private_key: int, salt: int = None) -> str:
     e = int_from_bytes(
         tagged_hash(
             "BIP0340/challenge",
-            bytes_from_point(R) + bytes_from_point(P) + msg
+            bytes_from_point(R) + bytes_from_point(public_key) + msg
         )
     ) % N
     return b64encode((R[0], (k + e * d) % N))
@@ -464,17 +464,17 @@ def verify(message: str, signature: str, public_key: str) -> bool:
         bool: True if the signature is valid, False otherwise.
     """
     msg = hashlib.sha256(message.encode()).digest()
-    lP = lift_x(b64decode(public_key)[0])
+    l_public_key = lift_x(b64decode(public_key)[0])
     r, s = b64decode(signature)
-    pubkey = bytes_from_point(lP)
-    if (lP is None) or (r >= P) or (s >= N):
+    pubkey = bytes_from_point(l_public_key)
+    if (l_public_key is None) or (r >= P) or (s >= N):
         return False
     e = int_from_bytes(
         tagged_hash(
             "BIP0340/challenge", bytes_from_int(r) + pubkey + msg
         )
     ) % N
-    R = point_add(point_multiply(s,G), point_multiply(N - e, lP))
+    R = point_add(point_multiply(s,G), point_multiply(N - e, l_public_key))
     if (R is None) or (not has_even_y(R)) or (R[0] != r):
         return False
     return True
