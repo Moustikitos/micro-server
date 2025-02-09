@@ -234,6 +234,8 @@ Options:
 
 ### 0.4.3 (dev)
 
+- [x] replaced ECDSA signatures with schnorr signatures
+
 ## Support this project
 
 [![Liberapay receiving](https://img.shields.io/liberapay/goal/Toons?logo=liberapay)](https://liberapay.com/Toons/donate)
