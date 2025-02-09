@@ -34,42 +34,180 @@ class EncryptionError(Exception):
     pass
 
 
-def lift_x(x: int) -> typing.Optional[tuple]:
-    if x >= P:
-        return None
+def y_from_x(x: int) -> int:
+    """
+    Computes y from x according to `secp256k1` equation.
+    """
     y_sq = (pow(x, 3, P) + 7) % P
     y = pow(y_sq, (P + 1) // 4, P)
     if pow(y, 2, P) != y_sq:
         return None
-    return (x, y if y & 1 == 0 else P-y)
+    return y
+
+
+def lift_x(x: int) -> typing.Optional[tuple]:
+    """
+    Computes the top y-coordinate for a given x on the SECP256k1 curve.
+
+    Args:
+        x (int): The x-coordinate of the elliptic curve point.
+
+    Returns:
+        tuple or None: The (x, y) point on the curve if it exists, otherwise
+                       None.
+    """
+    if x >= P:
+        return None
+    y = y_from_x(x)
+    return y if y is None else (x, y if y & 1 == 0 else P-y)
 
 
 def bytes_from_int(x: int) -> bytes:
+    """
+    Converts an integer to a 32-byte big-endian representation.
+
+    Args:
+        x (int): The integer to convert.
+
+    Returns:
+        bytes: The 32-byte big-endian representation.
+    """
     return x.to_bytes(32, byteorder="big")
 
 
 def int_from_bytes(b: bytes) -> int:
+    """
+    Converts a byte sequence to an integer.
+
+    Args:
+        b (bytes): The byte sequence to convert.
+
+    Returns:
+        int: The integer representation of the bytes.
+    """
     return int.from_bytes(b, byteorder="big")
 
 
 def bytes_from_point(point: tuple) -> bytes:
+    """
+    Extracts the x-coordinate from an elliptic curve point and converts it to
+    bytes.
+
+    Args:
+        point (tuple): The elliptic curve point (x, y).
+
+    Returns:
+        bytes: The x-coordinate in byte format.
+    """
     return bytes_from_int(point[0])
 
 
 def xor_bytes(b0: bytes, b1: bytes) -> bytes:
+    """
+    Performs a bitwise XOR operation on two byte sequences.
+
+    Args:
+        b0 (bytes): First byte sequence.
+        b1 (bytes): Second byte sequence.
+
+    Returns:
+        bytes: The result of XOR operation.
+    """
     return bytes(x ^ y for (x, y) in zip(b0, b1))
 
 
 def has_even_y(point: tuple) -> bool:
+    """
+    Determines whether the y-coordinate of a given point is even.
+
+    Args:
+        point (tuple): The elliptic curve point (x, y).
+
+    Returns:
+        bool: True if y is even, False otherwise.
+    """
     assert bool(point)
     return point[-1] % 2 == 0
 
 
+def bytes_from_int(x: int) -> bytes:
+    """
+    Converts an integer to a 32-byte big-endian representation.
+
+    Args:
+        x (int): The integer to convert.
+
+    Returns:
+        bytes: The 32-byte big-endian representation.
+    """
+    return x.to_bytes(32, byteorder="big")
+
+
+def int_from_bytes(b: bytes) -> int:
+    """
+    Converts a byte sequence to an integer.
+
+    Args:
+        b (bytes): The byte sequence to convert.
+
+    Returns:
+        int: The integer representation of the bytes.
+    """
+    return int.from_bytes(b, byteorder="big")
+
+
+def bytes_from_point(point: tuple) -> bytes:
+    """
+    Extracts the x-coordinate from an elliptic curve point and converts it to bytes.
+
+    Args:
+        point (tuple): The elliptic curve point (x, y).
+
+    Returns:
+        bytes: The x-coordinate in byte format.
+    """
+    return bytes_from_int(point[0])
+
+
 def xor_bytes(b0: bytes, b1: bytes) -> bytes:
+    """
+    Performs a bitwise XOR operation on two byte sequences.
+
+    Args:
+        b0 (bytes): First byte sequence.
+        b1 (bytes): Second byte sequence.
+
+    Returns:
+        bytes: The result of XOR operation.
+    """
     return bytes(x ^ y for (x, y) in zip(b0, b1))
 
 
+def has_even_y(point: tuple) -> bool:
+    """
+    Determines whether the y-coordinate of a given point is even.
+
+    Args:
+        point (tuple): The elliptic curve point (x, y).
+
+    Returns:
+        bool: True if y is even, False otherwise.
+    """
+    assert bool(point)
+    return point[-1] % 2 == 0
+
+
 def tagged_hash(tag: str, msg: bytes) -> bytes:
+    """
+    Computes a tagged hash using SHA-256.
+
+    Args:
+        tag (str): The tag to prefix before hashing.
+        msg (bytes): The message to hash.
+
+    Returns:
+        bytes: The SHA-256 digest of the tagged message.
+    """
     tag_hash = hashlib.sha256(tag.encode()).digest()
     return hashlib.sha256(tag_hash + tag_hash + msg).digest()
 
@@ -91,17 +229,6 @@ def bip39_hash(secret: str, passphrase: str = "SALT") -> bytes:
         unicodedata.normalize("NFKD", f"mnemonic{passphrase}").encode("utf-8"),
         iterations=2048, dklen=64
     )
-
-
-def y_from_x(x: int) -> int:
-    """
-    Computes y from x according to `secp256k1` equation.
-    """
-    y_sq = (pow(x, 3, P) + 7) % P
-    y = pow(y_sq, (P + 1) // 4, P)
-    if pow(y, 2, P) != y_sq:
-        return None
-    return y
 
 
 def encode(point: tuple) -> str:
@@ -139,7 +266,7 @@ def decode(puk: str) -> tuple:
 
 def b64encode(point: tuple) -> str:
     """
-    Encodes an elliptic curve point or ECDSA signatures as a base64 string.
+    Encodes an elliptic curve point or SCHNORR signatures as a base64 string.
 
     Args:
         point (tuple): The elliptic curve point as a tuple (x, y), where x and
@@ -154,7 +281,7 @@ def b64encode(point: tuple) -> str:
 
 def b64decode(raw: str) -> tuple:
     """
-    Decodes a base64-encoded string into an elliptic curve point or ECDSA
+    Decodes a base64-encoded string into an elliptic curve point or SCHNORR
     signature.
 
     Args:
