@@ -2,9 +2,26 @@
 # © THOORENS Bruno
 
 import sys
-import msvcrt
 
 from usrv import req
+
+try:
+    from msvcrt import getch
+except ImportError:
+    def getch():
+        """
+        Gets a single character from STDIO.
+        """
+        import sys
+        import tty
+        import termios
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            return sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 ROOT_CMD = ["HEAD", "GET", "POST", "PUT", "PUSH", "DELETE"]
 SERVER_PUBLIC_KEY = None
@@ -16,7 +33,7 @@ try:
 except Exception:
     req.LOG.error(f"peer not available: {sys.argv[1:]}")
     print("Press any key to continue...")
-    msvcrt.getch()
+    getch()
     sys.exit(1)
 else:
     print(f"clt tool 0.4.2\nConnected to {sys.argv[1]}\nCTRL+C to stop...")
