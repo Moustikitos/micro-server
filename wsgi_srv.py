@@ -30,7 +30,7 @@ import importlib
 import traceback
 
 from optparse import OptionParser
-from usrv import app, route, LOG
+from usrv import app, route, LOG, NONCES
 
 # Configure command-line argument parsing.
 parser = OptionParser(
@@ -156,6 +156,7 @@ else:
             LOG.error("%r\n%s", error, traceback.format_exc())
 
 # Set log level and start the server.
+NONCES.start_flusher()
 LOG.setLevel(options.loglevel)
 LOG.info("listening on %s:%s\nCTRL+C to stop...", options.host, options.port)
 waitress.serve(

@@ -389,6 +389,7 @@ def run(host: str = "127.0.0.1", port: int = 5000, loglevel: int = 20) -> None:
     """
     LOG.setLevel(loglevel)
     httpd = HTTPServer((host, port), uHTTPRequestHandler)
+    NONCES.start_flusher()
     try:
         LOG.info("listening on http://%s:%s\nCTRL+C to stop...", host, port)
         httpd.serve_forever()
