@@ -501,7 +501,7 @@ def sign(message: str, private_key: int, salt: int = None) -> str:
         )
     R = point_multiply(k0, G)
     assert R is not None
-    k = N - k0 if not has_even_y(R) else k0
+    k = k0 if has_even_y(R) else N - k0
     e = int_from_bytes(
         tagged_hash(
             "BIP0340/challenge",
@@ -534,7 +534,7 @@ def verify(message: str, signature: str, public_key: str) -> bool:
             "BIP0340/challenge", bytes_from_int(r) + pubkey + msg
         )
     ) % N
-    R = point_add(point_multiply(s,G), point_multiply(N - e, l_public_key))
+    R = point_add(point_multiply(s, G), point_multiply(N - e, l_public_key))
     if (R is None) or (not has_even_y(R)) or (R[0] != r):
         return False
     return True
