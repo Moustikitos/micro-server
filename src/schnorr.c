@@ -50,10 +50,14 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	Signature sig;
 	Point public_key, ephemeral_key;
 	mpz_t d0, k0, t, e, r;
-	unsigned char *rnd, *msg, *shh;
-	char *hex, *tgh, *s16, *xpuk;
+	unsigned char *tgh, *shh;
+	char *msg, *rnd, *hex, *s16, *xpuk;
 	char tmp[SHA256_HASH_HEX_SIZE * 3 + 1];
 	char *result = malloc((SHA256_HASH_HEX_SIZE * 2 + 1) * sizeof(char));
+
+	// printf("msg : %s\n", message);
+	// printf("secret : %s\n", secret);
+	// printf("aux_rand : %s\n", aux_rand);
 
 	if (aux_rand == NULL) {
 		rnd = hexlify(random_bytes(SHA256_HASH_SIZE), SHA256_HASH_SIZE);
@@ -62,6 +66,8 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 		rnd = secure_mpz_get_str_16(r);
 		mpz_clears(r, NULL);
 	}
+
+	// printf("rand : %s\n", rnd);
 
 	mpz_init_set_str(d0, secret, 16);
 	if ((mpz_cmp_ui(d0, 1) <= 0) || (mpz_cmp(d0, N) > 0)) {
@@ -72,6 +78,9 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	point_create(&public_key, NULL);
 	point_mul(&public_key, d0, &G);
 	assert(!is_infinity(&public_key));
+	
+	// gmp_printf("puk.x = %Zx\n", public_key.x);
+    // gmp_printf("puk.y = %Zx\n---\n", public_key.y);
 
 	if (!mpz_even_p(public_key.y)) {
 		mpz_sub(d0, N, d0);    
@@ -81,15 +90,20 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	hex = hexlify(tgh, SHA256_HASH_SIZE);
 	mpz_init_set_str(t, hex, 16);
 	mpz_xor(t, d0, t);
-	free(rnd);
+
+	// gmp_printf("t : %ZX\n", t);
 
 	hex = secure_mpz_get_str_16(t);
-	sprintf(&tmp[0], "%s", hex);
 	xpuk = secure_mpz_get_str_16(public_key.x);
 	shh = sha256_hash(message);
 	msg = hexlify(shh, SHA256_HASH_SIZE);
+	sprintf(&tmp[0], "%s", hex);
+	// printf("hex[tmp1] : %s - %s\n", hex, tmp);
 	sprintf(&tmp[SHA256_HASH_HEX_SIZE], "%s", xpuk);
+	// printf("xpuk[tmp1] : %s - %s\n", xpuk, tmp);
 	sprintf(&tmp[2 * SHA256_HASH_HEX_SIZE], "%s", msg);
+
+	// printf("tmp1 : %s\n", tmp);
 
 	tgh = tagged_hash("BIP0340/nonce", tmp);
 	hex = hexlify(tgh, SHA256_HASH_SIZE);
@@ -100,6 +114,8 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 		fprintf(stderr, "Failure. This happens only with negligible probability.\n");
 		return NULL;
 	}
+
+	// gmp_printf("k0 : %ZX\n", k0);
 
 	point_create(&ephemeral_key, NULL);
 	point_mul(&ephemeral_key, k0, &G);
@@ -112,6 +128,9 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	sprintf(&tmp[0], "%s", s16);
 	sprintf(&tmp[SHA256_HASH_HEX_SIZE], "%s", xpuk);
 	sprintf(&tmp[2 * SHA256_HASH_HEX_SIZE], "%s", msg);
+
+	// printf("tmp2 : %s\n", tmp);
+
 	mpz_init_set_str(e, hexlify(tagged_hash("BIP0340/challenge", tmp), SHA256_HASH_SIZE), 16);
 	mpz_mod(e, e, N);
 
@@ -127,12 +146,14 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	sprintf(&result[SHA256_HASH_HEX_SIZE], "%s", s16);
 
 	mpz_clears(d0, t, k0, e, NULL);
+
 	mpz_clears(public_key.x, public_key.y, NULL);
 	mpz_clears(ephemeral_key.x, ephemeral_key.y, NULL);
 	mpz_clears(sig.s, sig.r, NULL);
 	free(rnd); free(msg); free(shh);
 	free(hex);free(tgh); free(s16); free(xpuk);
 
+	// printf("sig : %s\n", result);
 	return result;
 }
 
@@ -148,15 +169,21 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 EXPORT short verify(const char *message, const char *sig, const char *puk_x) {
     Point *l_puk, R, sG;
     mpz_t e, r, s, x;
-	unsigned char *msg;
-	char *hex, *tgh, *s16;
+	unsigned char *msg, *tgh;
+	char *hex, *s16;
 	char part[SHA256_HASH_HEX_SIZE + 1];
 	char tmp[SHA256_HASH_HEX_SIZE * 3 + 1];
     short result;
 
-	strncpy(part, sig, SHA256_HASH_HEX_SIZE);
+	// printf("msg : %s\n", message);
+	// printf("sig : %s\n", sig);
+	// printf("puk_x : %s\n", puk_x);
+
+	strncpy(part, &sig[0], SHA256_HASH_HEX_SIZE);
+	part[SHA256_HASH_HEX_SIZE] = '\0';
 	mpz_init_set_str(r, part, 16);
-	strncpy(part, sig + SHA256_HASH_HEX_SIZE, SHA256_HASH_HEX_SIZE);
+	strncpy(part, &sig[SHA256_HASH_HEX_SIZE], SHA256_HASH_HEX_SIZE);
+	part[SHA256_HASH_HEX_SIZE] = '\0';
 	mpz_init_set_str(s, part, 16);
 
     if (mpz_cmp(r, N) >= 0 || mpz_cmp(s, N) >= 0){
@@ -180,6 +207,9 @@ EXPORT short verify(const char *message, const char *sig, const char *puk_x) {
 	msg = sha256_hash(message);
 	hex = hexlify(msg, SHA256_HASH_SIZE);
 	sprintf(&tmp[2 * SHA256_HASH_HEX_SIZE], "%s", hex);
+
+	// printf("tmp2 : %s\n", tmp);
+
 	tgh = tagged_hash("BIP0340/challenge", tmp);
 	hex = hexlify(tgh, SHA256_HASH_SIZE);
     mpz_init_set_str(e, hex, 16);
@@ -211,7 +241,6 @@ EXPORT short verify(const char *message, const char *sig, const char *puk_x) {
 int main() {
     Point puk;
     mpz_t d0;
-    char *tag = "BIP0340/challenge\0";
     char *x, *sig;
 
 	x = hexlify(sha256_hash("my very 12 word secret"), SHA256_HASH_SIZE);

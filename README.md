@@ -235,6 +235,8 @@ Options:
 ### 0.4.3 (dev)
 
 - [x] replaced ECDSA signatures with SCHNORR signatures
+- [x] added C implementation of SCHNORR signatures
+- [x] nonce flushing launch on startup
 
 ## Support this project
 
