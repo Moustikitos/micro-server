@@ -1,6 +1,12 @@
 #include "secp256k1.h"
 
 
+/**
+ * @brief Lifts an x-coordinate to a point on the SECP256K1 curve.
+ *
+ * @param x The x-coordinate as a big number.
+ * @return A pointer to a Point structure representing the lifted point.
+ */
 Point *lift_x(mpz_t x) {
     Point *result = malloc(sizeof(Point));
 	point_create(result, NULL);
@@ -13,6 +19,12 @@ Point *lift_x(mpz_t x) {
 }
 
 
+/**
+ * @brief Converts an mpz_t number to a zero-padded hexadecimal string.
+ *
+ * @param value The big number to convert.
+ * @return A zero-padded hexadecimal string representation of the number.
+ */
 char *secure_mpz_get_str_16(mpz_t value) {
 	char *str_16 = malloc((SHA256_HASH_HEX_SIZE + 1) * sizeof(char));
 	char tmp[SHA256_HASH_HEX_SIZE];
@@ -27,23 +39,24 @@ char *secure_mpz_get_str_16(mpz_t value) {
 
 
 /**
- * @brief Generates SCHNORR signature according to [SPEC].
+ * @brief Generates a Schnorr signature according to BIP0340.
  *
- * @param message  message to be signed.
- * @param secret   secret abcisa on SECP256k curve (BIG NUM hexadecimal representation).
- * @param aux_rand salt (64-len-hexadecimal string).
- * @return         Signature structure.
+ * @param message  The message to be signed.
+ * @param secret   The secret key as a hexadecimal big number.
+ * @param aux_rand Optional auxiliary random value (64-character hex string).
+ * @return A string containing the concatenated R and S values of the signature.
  */
 EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	Signature sig;
 	Point public_key, ephemeral_key;
 	mpz_t d0, k0, t, e, r;
-	unsigned char *rnd, *xpuk, *msg;
+	unsigned char *rnd, *msg, *shh;
+	char *hex, *tgh, *s16, *xpuk;
 	char tmp[SHA256_HASH_HEX_SIZE * 3 + 1];
 	char *result = malloc((SHA256_HASH_HEX_SIZE * 2 + 1) * sizeof(char));
 
 	if (aux_rand == NULL) {
-		rnd = hexlify(random_bytes(32), 32);
+		rnd = hexlify(random_bytes(SHA256_HASH_SIZE), SHA256_HASH_SIZE);
 	} else {
 		mpz_init_set_str(r, aux_rand, 16);
 		rnd = secure_mpz_get_str_16(r);
@@ -53,7 +66,7 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	mpz_init_set_str(d0, secret, 16);
 	if ((mpz_cmp_ui(d0, 1) <= 0) || (mpz_cmp(d0, N) > 0)) {
 		fprintf(stderr, "The secret key must be an integer in the range 1..N-1.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 
 	point_create(&public_key, NULL);
@@ -64,21 +77,28 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 		mpz_sub(d0, N, d0);    
 	}
 
-	mpz_init_set_str(t, hexlify(tagged_hash("BIP0340/aux", rnd), SHA256_HASH_SIZE), 16);
+	tgh = tagged_hash("BIP0340/aux", rnd);
+	hex = hexlify(tgh, SHA256_HASH_SIZE);
+	mpz_init_set_str(t, hex, 16);
 	mpz_xor(t, d0, t);
+	free(rnd);
 
-	sprintf(&tmp[0], "%s", secure_mpz_get_str_16(t));
+	hex = secure_mpz_get_str_16(t);
+	sprintf(&tmp[0], "%s", hex);
 	xpuk = secure_mpz_get_str_16(public_key.x);
-	msg = hexlify(sha256_hash(message), SHA256_HASH_SIZE);
+	shh = sha256_hash(message);
+	msg = hexlify(shh, SHA256_HASH_SIZE);
 	sprintf(&tmp[SHA256_HASH_HEX_SIZE], "%s", xpuk);
 	sprintf(&tmp[2 * SHA256_HASH_HEX_SIZE], "%s", msg);
 
-	mpz_init_set_str(k0, hexlify(tagged_hash("BIP0340/nonce", tmp), SHA256_HASH_SIZE), 16);
+	tgh = tagged_hash("BIP0340/nonce", tmp);
+	hex = hexlify(tgh, SHA256_HASH_SIZE);
+	mpz_init_set_str(k0, hex, 16);
 	mpz_mod(k0, k0, N);
 
 	if (mpz_cmp_ui(k0, 0) == 0) {
 		fprintf(stderr, "Failure. This happens only with negligible probability.\n");
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
 
 	point_create(&ephemeral_key, NULL);
@@ -88,7 +108,8 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 		mpz_sub(k0, N, k0);
 	}
 
-	sprintf(&tmp[0], "%s", secure_mpz_get_str_16(ephemeral_key.x));
+	s16 = secure_mpz_get_str_16(ephemeral_key.x);
+	sprintf(&tmp[0], "%s", s16);
 	sprintf(&tmp[SHA256_HASH_HEX_SIZE], "%s", xpuk);
 	sprintf(&tmp[2 * SHA256_HASH_HEX_SIZE], "%s", msg);
 	mpz_init_set_str(e, hexlify(tagged_hash("BIP0340/challenge", tmp), SHA256_HASH_SIZE), 16);
@@ -100,22 +121,35 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
 	mpz_add(sig.s, sig.s, k0);
 	mpz_mod(sig.s, sig.s, N);
 
-	sprintf(&result[0], "%s", secure_mpz_get_str_16(sig.r));
-	sprintf(&result[SHA256_HASH_HEX_SIZE], "%s", secure_mpz_get_str_16(sig.s));
+	s16 = secure_mpz_get_str_16(sig.r);
+	sprintf(&result[0], "%s", s16);
+	s16 = secure_mpz_get_str_16(sig.s);
+	sprintf(&result[SHA256_HASH_HEX_SIZE], "%s", s16);
 
 	mpz_clears(d0, t, k0, e, NULL);
 	mpz_clears(public_key.x, public_key.y, NULL);
 	mpz_clears(ephemeral_key.x, ephemeral_key.y, NULL);
 	mpz_clears(sig.s, sig.r, NULL);
-	free(xpuk);
+	free(rnd); free(msg); free(shh);
+	free(hex);free(tgh); free(s16); free(xpuk);
 
 	return result;
 }
 
 
+/**
+ * @brief Verifies a Schnorr signature according to BIP0340.
+ *
+ * @param message The signed message.
+ * @param sig     The signature (concatenated R and S values in hexadecimal).
+ * @param puk_x   The x-coordinate of the public key in hexadecimal.
+ * @return 1 if the signature is valid, 0 otherwise.
+ */
 EXPORT short verify(const char *message, const char *sig, const char *puk_x) {
     Point *l_puk, R, sG;
     mpz_t e, r, s, x;
+	unsigned char *msg;
+	char *hex, *tgh, *s16;
 	char part[SHA256_HASH_HEX_SIZE + 1];
 	char tmp[SHA256_HASH_HEX_SIZE * 3 + 1];
     short result;
@@ -139,10 +173,16 @@ EXPORT short verify(const char *message, const char *sig, const char *puk_x) {
         return 0;
     }
 
-	sprintf(&tmp[0], "%s", secure_mpz_get_str_16(r));
-	sprintf(&tmp[SHA256_HASH_HEX_SIZE], "%s", secure_mpz_get_str_16(l_puk->x));
-	sprintf(&tmp[2 * SHA256_HASH_HEX_SIZE], "%s", hexlify(sha256_hash(message), SHA256_HASH_SIZE));
-    mpz_init_set_str(e, hexlify(tagged_hash("BIP0340/challenge", tmp), SHA256_HASH_SIZE), 16);
+	s16 = secure_mpz_get_str_16(r);
+	sprintf(&tmp[0], "%s", s16);
+	s16 = secure_mpz_get_str_16(l_puk->x);
+	sprintf(&tmp[SHA256_HASH_HEX_SIZE], "%s", s16);
+	msg = sha256_hash(message);
+	hex = hexlify(msg, SHA256_HASH_SIZE);
+	sprintf(&tmp[2 * SHA256_HASH_HEX_SIZE], "%s", hex);
+	tgh = tagged_hash("BIP0340/challenge", tmp);
+	hex = hexlify(tgh, SHA256_HASH_SIZE);
+    mpz_init_set_str(e, hex, 16);
     mpz_mod(e, e, N);
 
 	point_create(&R, NULL);
@@ -156,22 +196,30 @@ EXPORT short verify(const char *message, const char *sig, const char *puk_x) {
     result = !mpz_cmp(R.x, r);
     mpz_clears(e, x, r, s, l_puk->x, l_puk->y, R.x, R.y, sG.x, sG.y, NULL);
 	free(l_puk);
+	free(msg);
+	free(hex);free(tgh); free(s16);
 
     return result;
 }
 
 
+/**
+ * @brief Main function demonstrating Schnorr signing and verification.
+ *
+ * @return 0 on successful execution.
+ */
 int main() {
     Point puk;
     mpz_t d0;
     char *tag = "BIP0340/challenge\0";
     char *x, *sig;
 
-	set_infinity(&puk);
-
 	x = hexlify(sha256_hash("my very 12 word secret"), SHA256_HASH_SIZE);
     mpz_init_set_str(d0, x, 16);
+
+	set_infinity(&puk);
 	point_mul(&puk, d0, &G);
+
 	gmp_printf("d0 = %Zx\n", d0);
 	gmp_printf("puk.x = %Zx\n", puk.x);
     gmp_printf("puk.y = %Zx\n---\n", puk.y);
@@ -184,5 +232,6 @@ int main() {
     printf("signature check with bad msg: %u\n", verify("test0", sig, secure_mpz_get_str_16(puk.x)));
     printf("signature check with original msg: %u\n", verify("test", sig, secure_mpz_get_str_16(puk.x)));
 
+	free(x); free(sig);
     return 0;
 }

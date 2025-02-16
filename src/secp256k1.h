@@ -24,7 +24,11 @@ mpz_t P, N, A, B;
 Point G;
 
 
-// Fonction d'initialisation automatique (exécutée à l'inclusion du fichier)
+/**
+ * @brief Initializes the secp256k1 curve parameters.
+ *
+ * This function sets the values for the curve parameters including A, B, P, N, and the generator point G.
+ */
 static inline void init_secp256k1_params(void) {
     mpz_init_set_str(A, "00", 16);
     mpz_init_set_str(B, "07", 16);
@@ -35,7 +39,11 @@ static inline void init_secp256k1_params(void) {
 }
 
 
-// Fonction pour libérer la mémoire des BIGNUM
+/**
+ * @brief Cleans up allocated memory for secp256k1 parameters.
+ *
+ * This function releases the memory used by the global parameters of the secp256k1 curve.
+ */
 static inline void cleanup_secp256k1_params(void) {
     mpz_clears(G.x, G.y, A, B, N, P, NULL);
 }
@@ -47,11 +55,11 @@ __attribute__((destructor)) static void auto_cleanup() { cleanup_secp256k1_param
 
 
 /**
- * @brief Effectue un Tagged Hash (SIPA Schnorr) avec SHA256.
+ * @brief Performs a Tagged Hash (SIPA Schnorr) using SHA256.
  *
- * @param tag  Le tag C  utiliser (chaC.ne de caractC(res).
- * @param message  Le message C  hasher (chaC.ne de caractC(res).
- * @return Tableau de 32 octets pour stocker le hash rC)sultant.
+ * @param tag The tag string used for hashing.
+ * @param message The message string to be hashed.
+ * @return A 32-byte array containing the resulting hash.
  */
 unsigned char *tagged_hash(const char *tag, const char *message) {
 	EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
@@ -60,109 +68,118 @@ unsigned char *tagged_hash(const char *tag, const char *message) {
 	unsigned int tag_hash_len;
 
 	if (mdctx == NULL) {
-		fprintf(stderr, "Erreur lors de la crC)ation du contexte EVP_MD_CTX\n");
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "hash-context initialization failed\n");
+		return NULL;
 	}
-	// 1. Hasher le tag une premiC(re fois
 	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
 	        EVP_DigestUpdate(mdctx, tag, strlen(tag)) != 1 ||
 	        EVP_DigestFinal_ex(mdctx, tag_hash, &tag_hash_len) != 1) {
-		fprintf(stderr, "Erreur lors du hachage du tag\n");
+		fprintf(stderr, "hash error\n");
 		EVP_MD_CTX_free(mdctx);
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
-	// 2. ConcatC)ner tag_hash || tag_hash || message et calculer le hash final
 	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
 	        EVP_DigestUpdate(mdctx, tag_hash, tag_hash_len) != 1 ||
 	        EVP_DigestUpdate(mdctx, tag_hash, tag_hash_len) != 1 ||
 	        EVP_DigestUpdate(mdctx, message, strlen(message)) != 1 ||
 	        EVP_DigestFinal_ex(mdctx, output, NULL) != 1) {
-		fprintf(stderr, "Erreur lors du hachage final\n");
+		fprintf(stderr, "hash finalization error\n");
 		EVP_MD_CTX_free(mdctx);
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
-
 	EVP_MD_CTX_free(mdctx);
 	return output;
 }
 
 
 /**
- * Calcule le hachage SHA-256 d'une chaC.ne de caractC(res en utilisant OpenSSL EVP.
+ * @brief Computes the SHA-256 hash of a given string using OpenSSL EVP.
  *
- * @param input La chaC.ne de caractC(res C  hacher.
- * @return Le tableau de caractC(res oC9 le hachage hexadC)cimal sera stockC).
+ * @param input The input string to hash.
+ * @return A 32-byte array containing the computed hash.
  */
 unsigned char *sha256_hash(const char *input) {
-	EVP_MD_CTX *mdctx; // Contexte de message pour le hachage
+	EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
 	unsigned char *output = malloc(SHA256_HASH_SIZE * sizeof(unsigned char));
-	unsigned int hash_len; // Longueur du hachage
+	unsigned int hash_len;
 
-	// CrC)er un nouveau contexte de hachage
-	mdctx = EVP_MD_CTX_new();
 	if (mdctx == NULL) {
-		fprintf(stderr, "Erreur lors de la crC)ation du contexte EVP_MD_CTX\n");
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "hash-context initialization failed\n");
+		return NULL;
 	}
-	// Initialiser le contexte pour SHA-256
 	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
 	        EVP_DigestUpdate(mdctx, input, strlen(input)) != 1 ||
 	        EVP_DigestFinal_ex(mdctx, output, &hash_len) != 1) {
-		fprintf(stderr, "Erreur lors du hachage\n");
+		fprintf(stderr, "hash error\n");
 		EVP_MD_CTX_free(mdctx);
-		exit(EXIT_FAILURE);
+		return NULL;
 	}
-
 	EVP_MD_CTX_free(mdctx);
 	return output;
 }
 
 
 /**
- * GC)nC(re une chaC.ne hexadC)cimale alC)atoire de taille spC)cifiC)e.
+ * @brief Generates a random hexadecimal string of a specified size.
  *
- * @param size Nombre d'octets alC)atoires C  gC)nC)rer.
- * @return Tableau oC9 stocker la chaC.ne hexadC)cimale.
+ * @param size The number of random bytes to generate.
+ * @return A buffer containing the generated hexadecimal string.
  */
 unsigned char *random_bytes(size_t size) {
 	unsigned char *output = malloc(size * sizeof(unsigned char));
-	// GC)nC)rer des octets alC)atoires avec OpenSSL
 	if (RAND_bytes(output, size) != 1) {
-		fprintf(stderr, "Erreur : C	chec de la gC)nC)ration alC)atoire.\n");
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "Erreur: random generation failed.\n");
+		return NULL;
 	}
 	return output;
 }
 
 
 /**
- * GC)nC(re une chaC.ne hexadC)cimale C  partir d'un buffer.
+ * @brief Converts a byte array into a hexadecimal string.
  *
- * @param input Tableau oC9 stocker la chaC.ne de bytes.
- * @param size Ttaille du tableau d'entrC)e.
- * @return Tableau oC9 stocker la chaC.ne hexadC)cimale.
+ * @param input The byte array to convert.
+ * @param size The size of the input array.
+ * @return A buffer containing the hexadecimal representation of the input.
  */
 char *hexlify(const unsigned char *input, size_t size) {
 	char *output = malloc((2 * size +1) * sizeof(char));
 	for (size_t i = 0; i < size; i++) {
 		sprintf(&output[i * 2], "%02x", input[i]);
 	}
-	output[size * 2] = '\0'; // Ajouter le caractC(re nul de fin
+	output[size * 2] = '\0';
 	return output;
 }
 
 
+/**
+ * @brief Sets a point to the point at infinity.
+ *
+ * @param M The point to set to infinity.
+ */
 void set_infinity(Point *M) {
     mpz_init_set_ui(M->x, 0);
     mpz_init_set_ui(M->y, 0);
 }
 
 
+/**
+ * @brief Checks if a given point is the point at infinity.
+ *
+ * @param M The point to check.
+ * @return 1 if the point is at infinity, 0 otherwise.
+ */
 short is_infinity(const Point *M) {
-    return mpz_cmp_ui(M->x, 0) == 0 && mpz_cmp_ui(M->y, 0) == 0 ? 1 : 0;
+    return mpz_cmp_ui(M->x, 0) == 0 && mpz_cmp_ui(M->y, 0) == 0;
 }
 
 
+/**
+ * @brief Creates a point, either copying an existing one or setting it to infinity.
+ *
+ * @param dst The destination point.
+ * @param src The source point to copy. If NULL, sets dst to infinity.
+ */
 void point_create(Point *dst, Point *src){
     if (src == NULL){
         set_infinity(dst);
@@ -173,7 +190,12 @@ void point_create(Point *dst, Point *src){
 }
 
 
-// Compute `y` from `x` according to `y²=x³+7`
+/**
+ * @brief Computes the y-coordinate from the x-coordinate based on the curve equation `y²=x³+7`.
+ *
+ * @param y The output y-coordinate.
+ * @param x The input x-coordinate.
+ */
 void y_from_x(mpz_t y, mpz_t x) {
     mpz_t y_sq, y_2, pp1s4;
     // unsigned long int pp1s4;
@@ -196,7 +218,13 @@ void y_from_x(mpz_t y, mpz_t x) {
 }
 
 
-
+/**
+ * @brief Adds two elliptic curve points.
+ *
+ * @param sum The resulting sum of P1 and P2.
+ * @param P1 The first point.
+ * @param P2 The second point.
+ */
 void point_add(Point *sum, Point *P1, Point *P2) {
     mpz_t xp1, yp1, xp2, yp2;
     mpz_init_set(xp1, P1->x);
@@ -278,6 +306,13 @@ void point_add(Point *sum, Point *P1, Point *P2) {
 }
 
 
+/**
+ * @brief Performs scalar multiplication of a point on the elliptic curve.
+ *
+ * @param prod The resulting point after multiplication.
+ * @param scalar The scalar multiplier.
+ * @param C The point to multiply.
+ */
 void point_mul(Point *prod, const mpz_t scalar, Point *C) {
     Point D, copy;
     point_create(&D, NULL);
