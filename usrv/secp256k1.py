@@ -62,23 +62,6 @@ def y_from_x(x: int) -> int:
     return y
 
 
-def lift_x(x: int) -> typing.Optional[tuple]:
-    """
-    Computes the coordinate for a given x on the SECP256k1 curve with y > 0.
-
-    Args:
-        x (int): The x-coordinate of the elliptic curve point.
-
-    Returns:
-        Union[tuple,None]: The (x, y) point on the curve if it exists, otherwise
-                       None.
-    """
-    if x >= P:
-        return None
-    y = y_from_x(x)
-    return y if y is None else (x, y if y & 1 == 0 else P-y)
-
-
 def bytes_from_int(x: int) -> bytes:
     """
     Converts an integer to a 32-byte big-endian representation.
@@ -483,17 +466,25 @@ def load_secret() -> typing.Optional[str]:
 
 if _schnorr is False:
 
-    def sign(message: str, private_key: int, salt: int = None) -> str:
+    def lift_x(x: int) -> typing.Optional[tuple]:
         """
-        Generates a SHNORR message signature using a private key.
+        Computes the coordinate for a given x on the SECP256k1 curve with
+        y > 0.
 
         Args:
-            message (str): The message to sign.
-            private_key (int): The private key used for signing.
+            x (int): The x-coordinate of the elliptic curve point.
 
         Returns:
-            str: The base64-encoded signature.
+            Union[tuple,None]: The (x, y) point on the curve if it exists,
+                otherwise None.
         """
+        if x >= P:
+            return None
+        y = y_from_x(x)
+        return y if y is None else (x, y if y & 1 == 0 else P-y)
+
+
+    def sign(message: str, private_key: int, salt: int = None) -> str:
         msg = hashlib.sha256(message.encode()).digest()
         aux_rand = os.urandom(32) if not salt else bytes_from_int(salt)
         d0 = private_key
@@ -532,17 +523,6 @@ if _schnorr is False:
         return b64encode((R[0], (k + e * d) % N))
 
     def verify(message: str, signature: str, public_key: str) -> bool:
-        """
-        Verifies SCHNORR signature using a public key.
-
-        Args:
-            message (str): The signed message.
-            signature (str): The base64-encoded signature.
-            public_key (str): The base64-encoded public key.
-
-        Returns:
-            bool: True if the signature is valid, False otherwise.
-        """
         msg = hashlib.sha256(message.encode()).digest()
         l_public_key = lift_x(b64decode(public_key)[0])
         r, s = b64decode(signature)
@@ -563,26 +543,6 @@ if _schnorr is False:
 
 
     def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
-        """
-        Signs a message using a private key derived from a secret and a salt.
-
-        This function generates a private key based on the provided secret and
-        salt using the BIP39 hashing method. It then creates a digital
-        signature for the message using the SCHNORR algorithm and SECP256k1
-        curve. The signature is returned as a concatenated hexadecimal string.
-
-        Args:
-            message (str): The message to sign.
-            secret (str, optional): The secret used to derive the private key.
-                If not provided, the function attempts to load a saved secret.
-            salt (str, optional): An additional salt value to derive the
-                private key.
-
-        Returns:
-            str: The hexadecimal-encoded signature as a single string, where
-                the first 64 characters represent 'r' and the next 64
-                represent 's'.
-        """
         prk = int.from_bytes(bip39_hash(secret or load_secret(), salt)) % N
         r, s = b64decode(sign(message, prk))
         return f"{r:064x}{s:064x}"
@@ -591,7 +551,7 @@ else:
 
     def sign(message: str, private_key: int, salt: int = None) -> str:
         prk = f"{private_key:064x}".encode()
-        sig = _schnorr.sign(message.encode(), prk, None)
+        sig = _schnorr.sign(message.encode("utf-8"), prk, None)
         return b64encode((int(sig[:64], 16), int(sig[64:], 16)))
 
 
@@ -604,4 +564,49 @@ else:
 
     def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
         prk = int.from_bytes(bip39_hash(secret or load_secret(), salt)) % N
-        return _schnorr.sign(message.encode(), f"{prk:064x}", None)
+        return _schnorr.sign(message.encode("utf-8"), f"{prk:064x}", None)
+
+
+raw_sign.__doc__ = """
+Signs a message using a private key derived from a secret and a salt.
+
+This function generates a private key based on the provided secret and
+salt using the BIP39 hashing method. It then creates a digital
+signature for the message using the SCHNORR algorithm and SECP256k1
+curve. The signature is returned as a concatenated hexadecimal string.
+
+Args:
+    message (str): The message to sign.
+    secret (str, optional): The secret used to derive the private key.
+        If not provided, the function attempts to load a saved secret.
+    salt (str, optional): An additional salt value to derive the
+        private key.
+
+Returns:
+    str: The hexadecimal-encoded signature as a single string, where
+        the first 64 characters represent 'r' and the next 64
+        represent 's'.
+"""
+
+sign.__doc__ = """
+Generates a SHNORR message signature using a private key.
+
+Args:
+    message (str): The message to sign.
+    private_key (int): The private key used for signing.
+
+Returns:
+    str: The base64-encoded signature.
+"""
+
+verify.__doc__ = """
+Verifies SCHNORR signature using a public key.
+
+Args:
+    message (str): The signed message.
+    signature (str): The base64-encoded signature.
+    public_key (str): The base64-encoded public key.
+
+Returns:
+    bool: True if the signature is valid, False otherwise.
+"""

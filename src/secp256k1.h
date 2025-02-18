@@ -62,33 +62,33 @@ __attribute__((destructor)) static void auto_cleanup() { cleanup_secp256k1_param
  * @return A 32-byte array containing the resulting hash.
  */
 unsigned char *tagged_hash(const char *tag, const char *message) {
-	EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-	unsigned char *output = malloc(SHA256_HASH_SIZE * sizeof(unsigned char));
-	unsigned char tag_hash[SHA256_HASH_SIZE];
-	unsigned int tag_hash_len;
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+    unsigned char *output = malloc(SHA256_HASH_SIZE * sizeof(unsigned char));
+    unsigned char tag_hash[SHA256_HASH_SIZE];
+    unsigned int tag_hash_len;
 
-	if (mdctx == NULL) {
-		fprintf(stderr, "hash-context initialization failed\n");
-		return NULL;
-	}
-	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
-	        EVP_DigestUpdate(mdctx, tag, strlen(tag)) != 1 ||
-	        EVP_DigestFinal_ex(mdctx, tag_hash, &tag_hash_len) != 1) {
-		fprintf(stderr, "hash error\n");
-		EVP_MD_CTX_free(mdctx);
-		return NULL;
-	}
-	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
-	        EVP_DigestUpdate(mdctx, tag_hash, tag_hash_len) != 1 ||
-	        EVP_DigestUpdate(mdctx, tag_hash, tag_hash_len) != 1 ||
-	        EVP_DigestUpdate(mdctx, message, strlen(message)) != 1 ||
-	        EVP_DigestFinal_ex(mdctx, output, NULL) != 1) {
-		fprintf(stderr, "hash finalization error\n");
-		EVP_MD_CTX_free(mdctx);
-		return NULL;
-	}
-	EVP_MD_CTX_free(mdctx);
-	return output;
+    if (mdctx == NULL) {
+        fprintf(stderr, "hash-context initialization failed\n");
+        return NULL;
+    }
+    if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
+            EVP_DigestUpdate(mdctx, tag, strlen(tag)) != 1 ||
+            EVP_DigestFinal_ex(mdctx, tag_hash, &tag_hash_len) != 1) {
+        fprintf(stderr, "hash error\n");
+        EVP_MD_CTX_free(mdctx);
+        return NULL;
+    }
+    if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
+            EVP_DigestUpdate(mdctx, tag_hash, tag_hash_len) != 1 ||
+            EVP_DigestUpdate(mdctx, tag_hash, tag_hash_len) != 1 ||
+            EVP_DigestUpdate(mdctx, message, strlen(message)) != 1 ||
+            EVP_DigestFinal_ex(mdctx, output, NULL) != 1) {
+        fprintf(stderr, "hash finalization error\n");
+        EVP_MD_CTX_free(mdctx);
+        return NULL;
+    }
+    EVP_MD_CTX_free(mdctx);
+    return output;
 }
 
 
@@ -99,23 +99,23 @@ unsigned char *tagged_hash(const char *tag, const char *message) {
  * @return A 32-byte array containing the computed hash.
  */
 unsigned char *sha256_hash(const char *input) {
-	EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-	unsigned char *output = malloc(SHA256_HASH_SIZE * sizeof(unsigned char));
-	unsigned int hash_len;
+    EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
+    unsigned char *output = malloc(SHA256_HASH_SIZE * sizeof(unsigned char));
+    unsigned int hash_len;
 
-	if (mdctx == NULL) {
-		fprintf(stderr, "hash-context initialization failed\n");
-		return NULL;
-	}
-	if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
-	        EVP_DigestUpdate(mdctx, input, strlen(input)) != 1 ||
-	        EVP_DigestFinal_ex(mdctx, output, &hash_len) != 1) {
-		fprintf(stderr, "hash error\n");
-		EVP_MD_CTX_free(mdctx);
-		return NULL;
-	}
-	EVP_MD_CTX_free(mdctx);
-	return output;
+    if (mdctx == NULL) {
+        fprintf(stderr, "hash-context initialization failed\n");
+        return NULL;
+    }
+    if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1 ||
+            EVP_DigestUpdate(mdctx, input, strlen(input)) != 1 ||
+            EVP_DigestFinal_ex(mdctx, output, &hash_len) != 1) {
+        fprintf(stderr, "hash error\n");
+        EVP_MD_CTX_free(mdctx);
+        return NULL;
+    }
+    EVP_MD_CTX_free(mdctx);
+    return output;
 }
 
 
@@ -126,12 +126,12 @@ unsigned char *sha256_hash(const char *input) {
  * @return A buffer containing the generated hexadecimal string.
  */
 unsigned char *random_bytes(size_t size) {
-	unsigned char *output = malloc(size * sizeof(unsigned char));
-	if (RAND_bytes(output, size) != 1) {
-		fprintf(stderr, "Erreur: random generation failed.\n");
-		return NULL;
-	}
-	return output;
+    unsigned char *output = malloc(size * sizeof(unsigned char));
+    if (RAND_bytes(output, size) != 1) {
+        fprintf(stderr, "Erreur: random generation failed.\n");
+        return NULL;
+    }
+    return output;
 }
 
 
@@ -143,12 +143,12 @@ unsigned char *random_bytes(size_t size) {
  * @return A buffer containing the hexadecimal representation of the input.
  */
 char *hexlify(const unsigned char *input, size_t size) {
-	char *output = malloc((2 * size +1) * sizeof(char));
-	for (size_t i = 0; i < size; i++) {
-		sprintf(&output[i * 2], "%02x", input[i]);
-	}
-	output[size * 2] = '\0';
-	return output;
+    char *output = malloc((2 * size +1) * sizeof(char));
+    for (size_t i = 0; i < size; i++) {
+        sprintf(&output[i * 2], "%02x", input[i]);
+    }
+    output[size * 2] = '\0';
+    return output;
 }
 
 
