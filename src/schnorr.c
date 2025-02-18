@@ -47,9 +47,8 @@ char *secure_mpz_get_str_16(mpz_t value) {
  * @return A string containing the concatenated R and S values of the signature.
  */
 EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
-    Signature sig;
     Point public_key, ephemeral_key;
-    mpz_t d0, k0, t, e, r;
+    mpz_t d0, k0, t, e, r, sig_s, sig_r;
     unsigned char *tgh, *shh;
     char *msg, *rnd, *hex, *s16, *xpuk;
     char tmp[SHA256_HASH_HEX_SIZE * 3 + 1];
@@ -134,26 +133,26 @@ EXPORT char *sign(const char *message, const char *secret, char *aux_rand) {
     mpz_init_set_str(e, hexlify(tagged_hash("BIP0340/challenge", tmp), SHA256_HASH_SIZE), 16);
     mpz_mod(e, e, N);
 
-    mpz_init_set(sig.r, ephemeral_key.x);
-    mpz_init_set(sig.s, e);
-    mpz_mul(sig.s, sig.s, d0);
-    mpz_add(sig.s, sig.s, k0);
-    mpz_mod(sig.s, sig.s, N);
+    
+    mpz_init_set(sig_r, ephemeral_key.x);
+    mpz_init_set(sig_s, e);
+    mpz_mul(sig_s, sig_s, d0);
+    mpz_add(sig_s, sig_s, k0);
+    mpz_mod(sig_s, sig_s, N);
 
-    s16 = secure_mpz_get_str_16(sig.r);
+    s16 = secure_mpz_get_str_16(sig_r);
     sprintf(&result[0], "%s", s16);
-    s16 = secure_mpz_get_str_16(sig.s);
+    s16 = secure_mpz_get_str_16(sig_s);
     sprintf(&result[SHA256_HASH_HEX_SIZE], "%s", s16);
 
     mpz_clears(d0, t, k0, e, NULL);
 
     mpz_clears(public_key.x, public_key.y, NULL);
     mpz_clears(ephemeral_key.x, ephemeral_key.y, NULL);
-    mpz_clears(sig.s, sig.r, NULL);
+    mpz_clears(sig_s, sig_r, NULL);
     free(rnd); free(msg); free(shh);
     free(hex);free(tgh); free(s16); free(xpuk);
 
-    // printf("sig : %s\n", result);
     return result;
 }
 

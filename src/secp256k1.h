@@ -17,7 +17,6 @@
 #define SHA256_HASH_HEX_SIZE 64
 
 typedef struct { mpz_t x, y; } Point;
-typedef struct { mpz_t r, s; } Signature;
 
 // Déclaration des variables globales (exposées aux autres fichiers)
 mpz_t P, N, A, B;
