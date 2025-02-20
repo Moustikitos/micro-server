@@ -564,7 +564,9 @@ else:
 
     def raw_sign(message: str, secret: str = None, salt: str = "") -> str:
         prk = int.from_bytes(bip39_hash(secret or load_secret(), salt)) % N
-        return _schnorr.sign(message.encode("utf-8"), f"{prk:064x}", None)
+        return _schnorr.sign(
+            message.encode("utf-8"), f"{prk:064x}".encode(), None
+        ).decode()
 
 
 raw_sign.__doc__ = """
