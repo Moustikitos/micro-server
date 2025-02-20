@@ -13,7 +13,7 @@ try:
 except ImportError:
     import imp
     lib_suffix = imp.get_suffixes()[0][0]
-    install_requires = ['future']
+    install_requires = []
 
 class build_ctypes(build_ext):
 
@@ -87,7 +87,7 @@ cmd_class = {
 }
 
 ext_modules = [
-    Extension('usrv/_schnorr', **lib_schnorr[-1])
+    Extension('_schnorr', **lib_schnorr[-1])
 ]
 
 with open("VERSION") as f1, open("README.md") as f2:

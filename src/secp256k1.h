@@ -326,5 +326,5 @@ void point_mul(Point *prod, const mpz_t scalar, Point *C) {
     }
     mpz_set(prod->x, D.x);
     mpz_set(prod->y, D.y);
-    mpz_clears(D.x, D.y, NULL);
+    mpz_clears(D.x, D.y, copy.x, copy.y, NULL);
 }

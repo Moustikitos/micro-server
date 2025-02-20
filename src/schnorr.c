@@ -9,8 +9,8 @@
  */
 Point *lift_x(mpz_t x) {
     Point *result = malloc(sizeof(Point));
-    point_create(result, NULL);
     mpz_init_set(result->x, x);
+    mpz_init_set_ui(result->y, 0);
     y_from_x(result->y, result->x);
     if (!mpz_even_p(result->y)){
         mpz_sub(result->y, P, result->y);
